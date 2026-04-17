@@ -42,8 +42,87 @@ function flattenJsonLd(entries) {
   return flattened;
 }
 
+function parseCandidateUrl(url) {
+  try {
+    return new URL(url);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeDownloadUrl(url) {
+  const parsed = parseCandidateUrl(url);
+
+  if (!parsed) {
+    return url;
+  }
+
+  parsed.searchParams.delete('bytestart');
+  parsed.searchParams.delete('byteend');
+
+  return parsed.toString();
+}
+
+function parseObservedByteRange(url) {
+  const parsed = parseCandidateUrl(url);
+
+  if (!parsed) {
+    return null;
+  }
+
+  const startValue = parsed.searchParams.get('bytestart');
+  const endValue = parsed.searchParams.get('byteend');
+
+  if (startValue === null && endValue === null) {
+    return null;
+  }
+
+  const start = Number.parseInt(startValue ?? '', 10);
+  const end = Number.parseInt(endValue ?? '', 10);
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start) {
+    return null;
+  }
+
+  return { start, end };
+}
+
+function hasByteRangeParams(url) {
+  const parsed = parseCandidateUrl(url);
+
+  if (!parsed) {
+    return false;
+  }
+
+  return parsed.searchParams.has('bytestart') || parsed.searchParams.has('byteend');
+}
+
+function isLikelyAudioOnlyCandidate(candidate) {
+  if (!candidate?.url) {
+    return false;
+  }
+
+  if (/\/t16\//i.test(candidate.url)) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(candidate.url);
+    const efg = parsed.searchParams.get('efg');
+    const decoded = efg ? decodeURIComponent(efg) : '';
+
+    return /audio|heaac|dash_ln/i.test(decoded);
+  } catch {
+    return false;
+  }
+}
+
 function isDirectVideoCandidate(candidate) {
-  if (!candidate?.url || candidate.url.startsWith('blob:')) {
+  if (!candidate?.url || isLikelyAudioOnlyCandidate(candidate)) {
+    return false;
+  }
+
+  if (candidate.url.startsWith('blob:')) {
     return false;
   }
 
@@ -61,6 +140,26 @@ function isDirectVideoCandidate(candidate) {
   );
 }
 
+function isDirectAudioCandidate(candidate) {
+  if (!candidate?.url || !isLikelyAudioOnlyCandidate(candidate)) {
+    return false;
+  }
+
+  if (candidate.url.startsWith('blob:')) {
+    return false;
+  }
+
+  if (/\.m3u8(?:$|\?)/i.test(candidate.url)) {
+    return false;
+  }
+
+  return (
+    /(?:^|\/)video\//i.test(candidate.contentType ?? '') ||
+    /(?:^|\/)audio\//i.test(candidate.contentType ?? '') ||
+    /\.(?:mp4|m4a|aac|mov)(?:$|\?)/i.test(candidate.url)
+  );
+}
+
 function scoreCandidate(candidate) {
   const priority = {
     'video.currentSrc': 0,
@@ -70,7 +169,13 @@ function scoreCandidate(candidate) {
     'meta:og:video': 4
   };
 
-  return priority[candidate.via] ?? 10;
+  let score = priority[candidate.via] ?? 10;
+
+  if (hasByteRangeParams(candidate.url)) {
+    score += 20;
+  }
+
+  return score;
 }
 
 function parseJsonLdAuthor(entry) {
@@ -189,11 +294,38 @@ function buildMediaCandidates(source, networkCandidates) {
   const deduped = new Map();
 
   for (const candidate of combined) {
-    if (!candidate?.url || deduped.has(candidate.url)) {
+    if (!candidate?.url) {
       continue;
     }
 
-    deduped.set(candidate.url, candidate);
+    const downloadUrl = normalizeDownloadUrl(candidate.url);
+    const dedupeKey = candidate.url.startsWith('blob:') ? candidate.url : downloadUrl;
+    const observedByteRange = parseObservedByteRange(candidate.url);
+
+    if (deduped.has(dedupeKey)) {
+      const existing = deduped.get(dedupeKey);
+
+      if (observedByteRange) {
+        existing.observedRangeCount = (existing.observedRangeCount ?? 0) + 1;
+        existing.observedByteRange = existing.observedByteRange
+          ? {
+              start: Math.min(existing.observedByteRange.start, observedByteRange.start),
+              end: Math.max(existing.observedByteRange.end, observedByteRange.end)
+            }
+          : observedByteRange;
+      }
+
+      continue;
+    }
+
+    deduped.set(dedupeKey, {
+      ...candidate,
+      downloadUrl,
+      hasByteRange: hasByteRangeParams(candidate.url),
+      isAudioOnly: isLikelyAudioOnlyCandidate(candidate),
+      observedByteRange,
+      observedRangeCount: observedByteRange ? 1 : 0
+    });
   }
 
   return Array.from(deduped.values());
@@ -474,7 +606,7 @@ export function normalizeSourceToMeta(source) {
     pageTitle: source.pageTitle ?? null,
     pageLanguage: source.pageLanguage ?? null,
     posterUrl: source.videoElement?.poster ?? source.metaTags?.['og:image'] ?? null,
-    videoUrl: orderedVideoCandidates[0]?.url ?? null,
+    videoUrl: orderedVideoCandidates[0]?.downloadUrl ?? orderedVideoCandidates[0]?.url ?? null,
     durationSeconds: source.videoElement?.duration ?? null
   };
 }
@@ -487,5 +619,16 @@ export function normalizeSourceToMeta(source) {
 export function listDownloadableVideoCandidates(source) {
   return (source.mediaCandidates ?? [])
     .filter(isDirectVideoCandidate)
+    .sort((left, right) => scoreCandidate(left) - scoreCandidate(right));
+}
+
+/**
+ * Return direct-download audio candidates ordered by confidence.
+ * @param {Record<string, unknown>} source
+ * @returns {Array<{ url: string, via: string, contentType: string | null, resourceType: string | null, status: number | null }>}
+ */
+export function listDownloadableAudioCandidates(source) {
+  return (source.mediaCandidates ?? [])
+    .filter(isDirectAudioCandidate)
     .sort((left, right) => scoreCandidate(left) - scoreCandidate(right));
 }

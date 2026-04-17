@@ -54,14 +54,19 @@ export async function loadOrCreateManifest(reelPaths, input) {
   }
 
   const baseline = createManifest(input);
+  const createdAt =
+    existing.timestamps && typeof existing.timestamps.created_at === 'string'
+      ? existing.timestamps.created_at
+      : baseline.timestamps.created_at;
 
   return {
     ...baseline,
-    ...existing,
-    errors: Array.isArray(existing.errors) ? existing.errors : [],
+    reelId: input.reelId,
+    sourceUrl: input.sourceUrl,
+    errors: [],
     timestamps: {
       ...baseline.timestamps,
-      ...(existing.timestamps ?? {})
+      created_at: createdAt
     }
   };
 }

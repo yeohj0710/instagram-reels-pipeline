@@ -26,7 +26,7 @@ export async function transcribeAudioFile(audioPath, outputJsonPath, outputTextP
     file: fs.createReadStream(audioPath),
     model: 'gpt-4o-transcribe',
     language: options.language ?? env.TRANSCRIPT_LANGUAGE,
-    response_format: 'verbose_json'
+    response_format: 'json'
   });
 
   const text = typeof transcript.text === 'string' ? transcript.text.trim() : '';

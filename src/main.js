@@ -1,10 +1,19 @@
+import { promises as fs } from 'node:fs';
+
 import { env } from './config/env.js';
 import { extractFrames } from './processor/frames.js';
-import { downloadMediaFromBrowserContext, extractAudio, probeMedia } from './processor/media.js';
+import {
+  downloadMediaFromBrowserContext,
+  extractAudio,
+  inspectMp4File,
+  mergeVideoAndAudio,
+  probeMedia
+} from './processor/media.js';
 import { transcribeAudioFile } from './processor/transcript.js';
 import { closeBrowserContext, launchBrowserContext, saveStorageState } from './scraper/browser.js';
 import {
   collectReelSource,
+  listDownloadableAudioCandidates,
   listDownloadableVideoCandidates,
   loadInputReelUrls,
   normalizeSourceToMeta
@@ -13,6 +22,17 @@ import { finalizeManifest, loadOrCreateManifest, markStatus, recordError, saveMa
 import { buildReelPaths, ensureProjectDirectories, ensureReelDirectories, INPUT_REELS_PATH } from './storage/paths.js';
 import { fileExists, writeJson } from './utils/fs.js';
 import { log } from './utils/log.js';
+
+function probeHasAudioStream(probeData) {
+  return Array.isArray(probeData?.streams) && probeData.streams.some((stream) => stream.codec_type === 'audio');
+}
+
+async function cleanupTempMediaFiles(reelPaths) {
+  await Promise.all([
+    fs.rm(reelPaths.audioSourcePath, { force: true }).catch(() => {}),
+    fs.rm(reelPaths.mergedVideoPath, { force: true }).catch(() => {})
+  ]);
+}
 
 async function attemptVideoDownload(page, reelPaths, source, meta, manifest) {
   const candidates = listDownloadableVideoCandidates(source);
@@ -29,12 +49,22 @@ async function attemptVideoDownload(page, reelPaths, source, meta, manifest) {
   for (const candidate of candidates) {
     try {
       const downloadInfo = await downloadMediaFromBrowserContext(page, candidate, reelPaths.videoPath);
+      const fileInspection = await inspectMp4File(reelPaths.videoPath);
+
+      if (!fileInspection.isLikelyValid) {
+        throw new Error(
+          `Downloaded file does not look like a complete MP4 (size=${fileInspection.size}, atoms=${fileInspection.atoms.join(',') || 'none'}).`
+        );
+      }
+
       markStatus(manifest, 'downloaded_video');
 
       meta.download = {
         source: candidate,
         bytes: downloadInfo.bytes,
-        contentType: downloadInfo.contentType
+        contentType: downloadInfo.contentType,
+        mode: downloadInfo.mode ?? 'direct',
+        inspection: fileInspection
       };
 
       try {
@@ -51,6 +81,63 @@ async function attemptVideoDownload(page, reelPaths, source, meta, manifest) {
   }
 
   return meta;
+}
+
+async function attemptSeparateAudioRecovery(page, reelPaths, source, meta, manifest) {
+  const candidates = listDownloadableAudioCandidates(source);
+
+  if (candidates.length === 0) {
+    recordError(
+      manifest,
+      'downloaded_audio_track',
+      'Video file has no embedded audio stream and no separate audio track was detected.'
+    );
+    return { meta, audioInputPath: reelPaths.videoPath };
+  }
+
+  for (const candidate of candidates) {
+    try {
+      await cleanupTempMediaFiles(reelPaths);
+
+      const downloadInfo = await downloadMediaFromBrowserContext(page, candidate, reelPaths.audioSourcePath);
+      const audioProbe = await probeMedia(reelPaths.audioSourcePath);
+
+      if (!probeHasAudioStream(audioProbe)) {
+        throw new Error('Downloaded separate media candidate does not contain an audio stream.');
+      }
+
+      meta.audioDownload = {
+        source: candidate,
+        bytes: downloadInfo.bytes,
+        contentType: downloadInfo.contentType,
+        mode: downloadInfo.mode ?? 'direct',
+        probe: audioProbe
+      };
+
+      try {
+        await mergeVideoAndAudio(reelPaths.videoPath, reelPaths.audioSourcePath, reelPaths.mergedVideoPath);
+        await fs.rm(reelPaths.videoPath, { force: true });
+        await fs.rename(reelPaths.mergedVideoPath, reelPaths.videoPath);
+        meta.videoProbe = await probeMedia(reelPaths.videoPath);
+        await fs.rm(reelPaths.audioSourcePath, { force: true }).catch(() => {});
+        meta.download.mergedAudioTrack = true;
+        await writeJson(reelPaths.metaPath, meta);
+        return { meta, audioInputPath: reelPaths.videoPath };
+      } catch (mergeError) {
+        recordError(manifest, 'merged_audio_track', mergeError);
+        await writeJson(reelPaths.metaPath, meta);
+        return { meta, audioInputPath: reelPaths.audioSourcePath };
+      }
+    } catch (error) {
+      recordError(
+        manifest,
+        'downloaded_audio_track',
+        `Candidate ${candidate.url} failed: ${String(error.message ?? error)}`
+      );
+    }
+  }
+
+  return { meta, audioInputPath: reelPaths.videoPath };
 }
 
 /**
@@ -86,9 +173,18 @@ export async function processReelUrl(context, url, index, total) {
     meta = await attemptVideoDownload(page, reelPaths, source, meta, manifest);
     await saveManifest(reelPaths, manifest);
 
-    if (await fileExists(reelPaths.videoPath)) {
+    let audioInputPath = reelPaths.videoPath;
+
+    if (probeHasAudioStream(meta.videoProbe) === false && (await fileExists(reelPaths.videoPath))) {
+      const recovered = await attemptSeparateAudioRecovery(page, reelPaths, source, meta, manifest);
+      meta = recovered.meta;
+      audioInputPath = recovered.audioInputPath;
+      await saveManifest(reelPaths, manifest);
+    }
+
+    if (await fileExists(audioInputPath)) {
       try {
-        await extractAudio(reelPaths.videoPath, reelPaths.audioPath);
+        await extractAudio(audioInputPath, reelPaths.audioPath);
         markStatus(manifest, 'extracted_audio');
       } catch (error) {
         recordError(manifest, 'extracted_audio', error);
@@ -126,6 +222,7 @@ export async function processReelUrl(context, url, index, total) {
     await saveManifest(reelPaths, manifest);
     return manifest;
   } finally {
+    await cleanupTempMediaFiles(reelPaths);
     finalizeManifest(manifest);
     await saveManifest(reelPaths, manifest);
     await page.close().catch(() => {});
