@@ -1,0 +1,9 @@
+node_modules/
+.env
+npm-debug.log*
+
+data/auth/*
+!data/auth/.gitkeep
+
+data/reels/*
+!data/reels/.gitkeep
