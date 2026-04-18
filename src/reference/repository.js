@@ -20,19 +20,32 @@ export async function listHarvestedReelIds() {
 export async function loadReferenceBundle(reelId) {
   const reelPaths = buildReelPaths(`https://www.instagram.com/reels/${reelId}/`);
 
-  const [meta, source, manifest, transcriptText] = await Promise.all([
-    readJson(reelPaths.metaPath, {}),
-    readJson(reelPaths.sourcePath, {}),
-    readJson(reelPaths.manifestPath, {}),
-    readTextFile(reelPaths.transcriptTextPath).catch(() => '')
-  ]);
+  const [record, meta, source, manifest, transcriptText, signals, structure, portability, information, format] =
+    await Promise.all([
+      readJson(reelPaths.recordPath, null),
+      readJson(reelPaths.metaPath, {}),
+      readJson(reelPaths.sourcePath, {}),
+      readJson(reelPaths.manifestPath, {}),
+      readTextFile(reelPaths.transcriptTextPath).catch(() => ''),
+      readJson(reelPaths.signalsPath, null),
+      readJson(reelPaths.structurePath, null),
+      readJson(reelPaths.portabilityPath, null),
+      readJson(reelPaths.informationPath, null),
+      readJson(reelPaths.formatPath, null)
+    ]);
 
   return {
     reelId,
     reelPaths,
+    record,
     meta,
     source,
     manifest,
-    transcriptText
+    transcriptText,
+    signals,
+    structure,
+    portability,
+    information,
+    format
   };
 }

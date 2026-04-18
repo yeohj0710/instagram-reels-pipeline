@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reels Workspace</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">Medical Beauty Reels Workspace</p>
+          <h1>정보 릴스와 형식 릴스를 분리해서 관리하고 바로 기획안까지 만듭니다.</h1>
+        </div>
+        <div class="topbar-actions">
+          <button type="button" id="refresh-button">새로고침</button>
+          <button type="button" data-bulk-action="process-pending">미처리 링크 처리</button>
+          <button type="button" data-bulk-action="analyze-pending">미분석 링크 분석</button>
+        </div>
+      </section>
+
+      <section class="stats" id="stats"></section>
+
+      <section class="composer">
+        <form id="create-reference-form" class="composer-form">
+          <div class="field-row">
+            <label>
+              <span>구분</span>
+              <select name="collectionType" required>
+                <option value="information">정보 릴스</option>
+                <option value="format">형식 릴스</option>
+              </select>
+            </label>
+            <label class="wide">
+              <span>Instagram 링크</span>
+              <input name="url" type="url" placeholder="https://www.instagram.com/reel/..." required />
+            </label>
+          </div>
+          <div class="field-row">
+            <label>
+              <span>제목</span>
+              <input name="title" type="text" placeholder="관리용 제목" />
+            </label>
+            <label>
+              <span>토픽</span>
+              <input name="topic" type="text" placeholder="예: 써마지, 모공, 리프팅" />
+            </label>
+            <label>
+              <span>태그</span>
+              <input name="tags" type="text" placeholder="쉼표로 구분" />
+            </label>
+          </div>
+          <label>
+            <span>메모</span>
+            <textarea name="notes" rows="3" placeholder="왜 넣는지, 사람이 본 포인트, 검토 메모"></textarea>
+          </label>
+          <div class="composer-submit">
+            <button type="submit">링크 저장</button>
+            <p id="status-message" class="status-message"></p>
+          </div>
+        </form>
+      </section>
+
+      <section class="workspace-grid">
+        <section class="column">
+          <div class="column-header">
+            <div>
+              <p class="eyebrow">Information</p>
+              <h2>정보 릴스</h2>
+            </div>
+          </div>
+          <div id="information-list" class="reference-list"></div>
+        </section>
+
+        <section class="column">
+          <div class="column-header">
+            <div>
+              <p class="eyebrow">Format</p>
+              <h2>형식 릴스</h2>
+            </div>
+          </div>
+          <div id="format-list" class="reference-list"></div>
+        </section>
+      </section>
+
+      <section class="column" id="unassigned-section" hidden>
+        <div class="column-header">
+          <div>
+            <p class="eyebrow">Legacy</p>
+            <h2>미분류 레퍼런스</h2>
+          </div>
+        </div>
+        <div id="unassigned-list" class="reference-list"></div>
+      </section>
+
+      <section class="plan-grid">
+        <section class="column">
+          <div class="column-header">
+            <div>
+              <p class="eyebrow">Planner</p>
+              <h2>기획안 생성</h2>
+            </div>
+          </div>
+          <form id="plan-form" class="plan-form">
+            <div class="field-row">
+              <label>
+                <span>기획안 제목</span>
+                <input name="title" type="text" placeholder="예: 써마지 인사이트 x 질문형 오프닝" />
+              </label>
+              <label>
+                <span>토픽</span>
+                <input name="topic" type="text" placeholder="비워두면 정보 릴스 토픽을 사용" />
+              </label>
+            </div>
+            <div class="selection-grid">
+              <div>
+                <p class="selection-title">정보 레퍼런스 선택</p>
+                <div id="plan-info-options" class="selection-list"></div>
+              </div>
+              <div>
+                <p class="selection-title">형식 레퍼런스 선택</p>
+                <div id="plan-format-options" class="selection-list"></div>
+              </div>
+            </div>
+            <label>
+              <span>매칭 메모</span>
+              <textarea
+                name="notes"
+                rows="3"
+                placeholder="왜 이 조합이 맞는지, 사람이 보고 느낀 조합 포인트"
+              ></textarea>
+            </label>
+            <div class="composer-submit">
+              <button type="submit">기획안 생성 큐에 넣기</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="column">
+          <div class="column-header">
+            <div>
+              <p class="eyebrow">Saved Plans</p>
+              <h2>기획안</h2>
+            </div>
+          </div>
+          <div id="plans-list" class="plans-list"></div>
+        </section>
+      </section>
+
+      <section class="column">
+        <div class="column-header">
+          <div>
+            <p class="eyebrow">Queue</p>
+            <h2>작업 큐</h2>
+          </div>
+        </div>
+        <div id="jobs-list" class="jobs-list"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

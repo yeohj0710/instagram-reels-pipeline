@@ -1,3 +1,5 @@
+import { touchReferenceAnalyzed } from '../workspace/references.js';
+import { analyzeFocusedReference } from './focused.js';
 import { ensureProjectDirectories } from '../storage/paths.js';
 import { writeJson } from '../utils/fs.js';
 import { log } from '../utils/log.js';
@@ -32,6 +34,8 @@ export async function analyzeReference(reelId) {
   const structure = await analyzeReferenceStructure(bundle, signals);
   const portability = evaluateReferencePortability(bundle, signals, structure);
   await writeJson(bundle.reelPaths.portabilityPath, portability);
+  await analyzeFocusedReference(bundle, signals, structure, portability);
+  await touchReferenceAnalyzed(reelId);
 
   return 'analyzed';
 }

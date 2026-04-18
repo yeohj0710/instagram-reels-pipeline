@@ -22,6 +22,7 @@ export const LIBRARIES_DIR = path.join(DATA_DIR, 'libraries');
 export const PLANNING_DIR = path.join(DATA_DIR, 'planning');
 export const PLANNING_RUNS_DIR = path.join(PLANNING_DIR, 'runs');
 export const PROFILES_DIR = path.join(PLANNING_DIR, 'profiles');
+export const PLANS_DIR = path.join(DATA_DIR, 'plans');
 export const PUBLISH_DIR = path.join(DATA_DIR, 'publish');
 export const PUBLISH_NOTION_DIR = path.join(PUBLISH_DIR, 'notion');
 export const PUBLISH_SCHEDULES_DIR = path.join(PUBLISH_DIR, 'schedules');
@@ -40,6 +41,7 @@ export async function ensureProjectDirectories() {
     ensureDir(LIBRARIES_DIR),
     ensureDir(PLANNING_RUNS_DIR),
     ensureDir(PROFILES_DIR),
+    ensureDir(PLANS_DIR),
     ensureDir(PUBLISH_NOTION_DIR),
     ensureDir(PUBLISH_SCHEDULES_DIR)
   ]);
@@ -76,6 +78,7 @@ export function parseShortcodeFromUrl(urlString) {
  * @returns {{
  *   reelId: string,
  *   reelDir: string,
+ *   recordPath: string,
  *   sourcePath: string,
  *   metaPath: string,
  *   mediaDir: string,
@@ -96,7 +99,9 @@ export function parseShortcodeFromUrl(urlString) {
  *   bodyPath: string,
  *   ctaPath: string,
  *   editingPath: string,
- *   summaryPath: string
+ *   summaryPath: string,
+ *   informationPath: string,
+ *   formatPath: string
  * }}
  */
 export function buildReelPaths(urlString) {
@@ -109,6 +114,7 @@ export function buildReelPaths(urlString) {
   return {
     reelId,
     reelDir,
+    recordPath: path.join(reelDir, 'record.json'),
     sourcePath: path.join(reelDir, 'source.json'),
     metaPath: path.join(reelDir, 'meta.json'),
     mediaDir,
@@ -129,7 +135,9 @@ export function buildReelPaths(urlString) {
     bodyPath: path.join(analysisDir, 'body.json'),
     ctaPath: path.join(analysisDir, 'cta.json'),
     editingPath: path.join(analysisDir, 'editing.json'),
-    summaryPath: path.join(analysisDir, 'summary.md')
+    summaryPath: path.join(analysisDir, 'summary.md'),
+    informationPath: path.join(analysisDir, 'information.json'),
+    formatPath: path.join(analysisDir, 'format.json')
   };
 }
 
@@ -205,5 +213,26 @@ export function buildPlanningRunPaths(runId) {
     scriptsDir: path.join(runDir, 'scripts'),
     packagesDir: path.join(runDir, 'packages'),
     notionDir: path.join(runDir, 'notion')
+  };
+}
+
+/**
+ * Build paths for one saved plan.
+ * @param {string} planId
+ * @returns {{
+ *   planId: string,
+ *   planDir: string,
+ *   jsonPath: string,
+ *   markdownPath: string
+ * }}
+ */
+export function buildPlanPaths(planId) {
+  const planDir = path.join(PLANS_DIR, planId);
+
+  return {
+    planId,
+    planDir,
+    jsonPath: path.join(planDir, 'plan.json'),
+    markdownPath: path.join(planDir, 'plan.md')
   };
 }

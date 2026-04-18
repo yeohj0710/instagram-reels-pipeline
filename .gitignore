@@ -14,8 +14,14 @@ data/discovery/runs/*
 data/planning/runs/*
 !data/planning/runs/.gitkeep
 
+data/plans/*
+!data/plans/.gitkeep
+
 data/publish/notion/*
 !data/publish/notion/.gitkeep
 
 data/publish/schedules/*
 !data/publish/schedules/.gitkeep
+
+output/
+tmp/

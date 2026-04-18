@@ -8,15 +8,12 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "app": "node scripts/app.js",
     "login": "node scripts/login.js",
-    "discover": "node scripts/discover.js",
-    "harvest": "node scripts/harvest.js",
     "analyze": "node scripts/analyze.js",
     "generate": "node scripts/generate.js",
-    "publish": "node scripts/publish.js",
-    "schedule": "node scripts/schedule.js",
     "run": "node scripts/run.js",
-    "start": "npm run run"
+    "start": "npm run app"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

@@ -11,6 +11,8 @@ const projectRoot = path.resolve(__dirname, '../..');
 dotenv.config({ path: path.join(projectRoot, '.env'), quiet: true });
 
 const envSchema = z.object({
+  APP_HOST: z.string().trim().min(1).default('127.0.0.1'),
+  APP_PORT: z.coerce.number().int().positive().default(3030),
   OPENAI_API_KEY: z.string().optional().default(''),
   OPENAI_TEXT_MODEL: z.string().trim().min(1).default('gpt-5.4-nano'),
   TRANSCRIPT_LANGUAGE: z.string().trim().min(1).default('ko'),
@@ -36,6 +38,8 @@ const envSchema = z.object({
 });
 
 const parsed = envSchema.parse({
+  APP_HOST: process.env.APP_HOST ?? '127.0.0.1',
+  APP_PORT: process.env.APP_PORT ?? '3030',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   OPENAI_TEXT_MODEL: process.env.OPENAI_TEXT_MODEL ?? 'gpt-5.4-nano',
   TRANSCRIPT_LANGUAGE: process.env.TRANSCRIPT_LANGUAGE ?? 'ko',
@@ -58,6 +62,7 @@ const parsed = envSchema.parse({
 
 export const env = {
   ...parsed,
+  APP_HOST: parsed.APP_HOST.trim(),
   OPENAI_API_KEY: parsed.OPENAI_API_KEY.trim() || null,
   OPENAI_TEXT_MODEL: parsed.OPENAI_TEXT_MODEL.trim(),
   FFMPEG_PATH: parsed.FFMPEG_PATH.trim() || null,
