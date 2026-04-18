@@ -1,0 +1,26 @@
+{
+  "id": "default",
+  "name": "Default Profile",
+  "identity": "Reference-grounded educational short-form creator",
+  "tone": "Clear, practical, punchy, non-fluffy",
+  "targetPersonas": [
+    {
+      "name": "General Korean short-form viewer",
+      "painPoints": [
+        "Wants quick insight",
+        "Needs strong hook"
+      ]
+    }
+  ],
+  "tabooRules": [
+    "Do not invent evidence beyond references",
+    "Keep claims reviewable by a human"
+  ],
+  "desiredCtaTypes": [
+    "comment",
+    "follow",
+    "save"
+  ],
+  "allowedTransformationIntensity": "very_light",
+  "generationMode": "conservative"
+}

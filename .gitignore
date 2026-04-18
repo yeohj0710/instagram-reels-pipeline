@@ -7,3 +7,15 @@ data/auth/*
 
 data/reels/*
 !data/reels/.gitkeep
+
+data/discovery/runs/*
+!data/discovery/runs/.gitkeep
+
+data/planning/runs/*
+!data/planning/runs/.gitkeep
+
+data/publish/notion/*
+!data/publish/notion/.gitkeep
+
+data/publish/schedules/*
+!data/publish/schedules/.gitkeep

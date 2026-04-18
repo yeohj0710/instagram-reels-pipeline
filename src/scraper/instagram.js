@@ -50,6 +50,16 @@ function parseCandidateUrl(url) {
   }
 }
 
+function decodeBase64Url(value) {
+  try {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padding = normalized.length % 4 === 0 ? '' : '='.repeat(4 - (normalized.length % 4));
+    return Buffer.from(`${normalized}${padding}`, 'base64').toString('utf8');
+  } catch {
+    return '';
+  }
+}
+
 function normalizeDownloadUrl(url) {
   const parsed = parseCandidateUrl(url);
 
@@ -109,7 +119,7 @@ function isLikelyAudioOnlyCandidate(candidate) {
   try {
     const parsed = new URL(candidate.url);
     const efg = parsed.searchParams.get('efg');
-    const decoded = efg ? decodeURIComponent(efg) : '';
+    const decoded = efg ? decodeBase64Url(decodeURIComponent(efg)) : '';
 
     return /audio|heaac|dash_ln/i.test(decoded);
   } catch {

@@ -1,0 +1,4 @@
+{"referenceId":"dekfs68pvkx","author":"yuris__c","performanceScore":25,"portabilityScore":53,"portabilityLabel":"conditional","text":"@3waau.kr","type":"링크/계정 태그","rationale":"캡션에 명시된 @3waau.kr를 CTA로 활용(참조된 유일한 직접 행동 단서)."}
+{"referenceId":"djzpd8ry1bz","author":"yuris__c","performanceScore":23,"portabilityScore":64,"portabilityLabel":"conditional","text":"올리브영에서 꼭 구매해보세요.","type":"direct_purchase_callout","rationale":"마지막에 구매처(올리브영)와 행동(꼭 구매)을 한 문장으로 명확히 제시"}
+{"referenceId":"dovhdyakkqa","author":"yuris__c","performanceScore":48,"portabilityScore":72,"portabilityLabel":"portable","text":"팔로우여러분","type":"follow","rationale":"캡션에 ‘팔로우여러분’ 문구가 포함되어 있어 팔로우 유도가 존재"}
+{"referenceId":"dr4urspeobm","author":"pm_yoonchisang","performanceScore":45,"portabilityScore":62,"portabilityLabel":"conditional","text":"팔로우하고 진짜 기획자의 인사이트 더 받아가세요.","type":"follow","rationale":"마지막에 행동 요청(팔로우)으로 전환"}

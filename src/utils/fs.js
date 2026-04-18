@@ -78,12 +78,92 @@ export async function writeText(filePath, text) {
 }
 
 /**
+ * Append one JSON line to a JSONL file.
+ * @param {string} filePath
+ * @param {unknown} data
+ * @returns {Promise<string>}
+ */
+export async function appendJsonl(filePath, data) {
+  await ensureDir(path.dirname(filePath));
+  await fs.appendFile(filePath, `${JSON.stringify(data)}\n`, 'utf8');
+  return filePath;
+}
+
+/**
+ * Read a JSONL file into an array.
+ * @param {string} filePath
+ * @returns {Promise<unknown[]>}
+ */
+export async function readJsonl(filePath) {
+  const content = await readTextFile(filePath).catch((error) => {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      return '';
+    }
+
+    throw error;
+  });
+
+  return normalizeLineEndings(content)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+}
+
+/**
+ * Write a JSONL file from an array.
+ * @param {string} filePath
+ * @param {unknown[]} rows
+ * @returns {Promise<string>}
+ */
+export async function writeJsonl(filePath, rows) {
+  await ensureDir(path.dirname(filePath));
+  const text = rows.map((row) => JSON.stringify(row)).join('\n');
+  await fs.writeFile(filePath, text ? `${text}\n` : '', 'utf8');
+  return filePath;
+}
+
+/**
  * Remove a directory tree if it exists.
  * @param {string} targetPath
  * @returns {Promise<void>}
  */
 export async function removeDir(targetPath) {
   await fs.rm(targetPath, { recursive: true, force: true });
+}
+
+/**
+ * List direct child directories.
+ * @param {string} dirPath
+ * @returns {Promise<string[]>}
+ */
+export async function listDirectories(dirPath) {
+  const entries = await fs.readdir(dirPath, { withFileTypes: true }).catch((error) => {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      return [];
+    }
+
+    throw error;
+  });
+
+  return entries.filter((entry) => entry.isDirectory()).map((entry) => path.join(dirPath, entry.name));
+}
+
+/**
+ * List direct child files.
+ * @param {string} dirPath
+ * @returns {Promise<string[]>}
+ */
+export async function listFiles(dirPath) {
+  const entries = await fs.readdir(dirPath, { withFileTypes: true }).catch((error) => {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      return [];
+    }
+
+    throw error;
+  });
+
+  return entries.filter((entry) => entry.isFile()).map((entry) => path.join(dirPath, entry.name));
 }
 
 /**
@@ -110,4 +190,13 @@ export function sanitizeFileSegment(value, fallback = 'item') {
     .replace(/^-+|-+$/g, '');
 
   return normalized || fallback;
+}
+
+/**
+ * Create a filesystem-safe timestamp id.
+ * @param {Date} [date]
+ * @returns {string}
+ */
+export function createTimestampId(date = new Date()) {
+  return date.toISOString().replace(/[:.]/g, '-');
 }

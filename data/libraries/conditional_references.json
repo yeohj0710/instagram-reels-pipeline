@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-04-17T13:59:11.080Z",
+  "items": [
+    {
+      "referenceId": "dr4urspeobm",
+      "author": "pm_yoonchisang",
+      "performanceScore": 45,
+      "portabilityScore": 62,
+      "portabilityLabel": "conditional",
+      "reproducibilityCost": 2,
+      "referenceValueScore": 56,
+      "caption": "Audio is mutedpm_yoonchisangFollow떡상한 계정들의 공통점 '톤앤매너' 🧐… morePlay button iconLike3,155Comment96Repost291ShareSaveMore",
+      "hook": "떡상한 계정들의 공통점 ‘톤앤매너’… 그냥 감각이 아니라 3가지만 맞춘 거예요",
+      "cta": "팔로우하고 진짜 기획자의 인사이트 더 받아가세요.",
+      "contentArchetype": "‘떡상한 계정’ 톤앤매너를 만드는 3가지 편집 규칙(컬러/폰트/소스) 체크리스트형",
+      "reusable": [
+        "hook_structure",
+        "body_beat_order",
+        "editing_rhythm"
+      ],
+      "avoid": [
+        "brand_led_framing"
+      ]
+    },
+    {
+      "referenceId": "djzpd8ry1bz",
+      "author": "yuris__c",
+      "performanceScore": 23,
+      "portabilityScore": 64,
+      "portabilityLabel": "conditional",
+      "reproducibilityCost": 2,
+      "referenceValueScore": 50,
+      "caption": "오디오 소리 꺼짐yuris__c태그된 사용자unpa.official태그된 사용자unpa.official팔로우#광고 @unpa.official … 더 보기재생 버튼 아이콘좋아요765댓글21리포스트4공유하기저장더 보기",
+      "hook": "입 냄새가 좀 난다—이것 좀 살짝 뿌려주세요.",
+      "cta": "올리브영에서 꼭 구매해보세요.",
+      "contentArchetype": "입냄새 고민을 ‘바로 해결’하는 매너템/선물형 치약 광고(문제→제품→효과→구매 CTA)",
+      "reusable": [
+        "hook_structure",
+        "body_beat_order",
+        "cta_pattern",
+        "editing_rhythm"
+      ],
+      "avoid": []
+    },
+    {
+      "referenceId": "dekfs68pvkx",
+      "author": "yuris__c",
+      "performanceScore": 25,
+      "portabilityScore": 53,
+      "portabilityLabel": "conditional",
+      "reproducibilityCost": 2,
+      "referenceValueScore": 43,
+      "caption": "오디오 소리 꺼짐yuris__c오디오 이미지James Brown · Get On The Good Foot (Pt.1 & 2) James Brown · Get On The Good Foot (Pt.1 & 2) 태그된 사용자3waau.kr오디오 이미지James Brown · Get On The Good Foot (Pt.1 & 2) James Brown · Get On The Good Foot (Pt.1 & 2) 팔로우#광고 @3waau.kr… 더 보기재생 버튼 아이콘",
+      "hook": "레이 가이갭",
+      "cta": "@3waau.kr",
+      "contentArchetype": "짧은 자극형(오디오/재생 요소) 광고 훅 + 반복 노출형 캡션/태그",
+      "reusable": [
+        "hook_structure",
+        "body_beat_order"
+      ],
+      "avoid": [
+        "brand_led_framing"
+      ]
+    }
+  ]
+}

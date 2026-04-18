@@ -27,6 +27,10 @@ function probeHasAudioStream(probeData) {
   return Array.isArray(probeData?.streams) && probeData.streams.some((stream) => stream.codec_type === 'audio');
 }
 
+function probeHasVideoStream(probeData) {
+  return Array.isArray(probeData?.streams) && probeData.streams.some((stream) => stream.codec_type === 'video');
+}
+
 async function cleanupTempMediaFiles(reelPaths) {
   await Promise.all([
     fs.rm(reelPaths.audioSourcePath, { force: true }).catch(() => {}),
@@ -69,8 +73,11 @@ async function attemptVideoDownload(page, reelPaths, source, meta, manifest) {
 
       try {
         meta.videoProbe = await probeMedia(reelPaths.videoPath);
+        if (!probeHasVideoStream(meta.videoProbe)) {
+          throw new Error('Downloaded media candidate does not contain a video stream.');
+        }
       } catch (error) {
-        recordError(manifest, 'ffprobe', error);
+        throw error;
       }
 
       await writeJson(reelPaths.metaPath, meta);
@@ -230,17 +237,24 @@ export async function processReelUrl(context, url, index, total) {
 }
 
 /**
- * Run the full pipeline for every URL in data/input/reels.txt.
+ * Run the full pipeline for a provided set of Reel URLs.
+ * @param {string[]} inputUrls
+ * @param {{ label?: string }} [options]
  * @returns {Promise<{ total: number, errorCount: number }>}
  */
-export async function runPipeline() {
+export async function runPipelineForUrls(inputUrls, options = {}) {
   // Compliance note: this pipeline intentionally processes only user-supplied URLs.
   await ensureProjectDirectories();
-
-  const urls = await loadInputReelUrls(INPUT_REELS_PATH);
+  const urls = Array.from(
+    new Set(
+      (Array.isArray(inputUrls) ? inputUrls : [])
+        .map((url) => (typeof url === 'string' ? url.trim() : ''))
+        .filter(Boolean)
+    )
+  );
 
   if (urls.length === 0) {
-    log.warn(`No Reel URLs found in ${INPUT_REELS_PATH}.`);
+    log.warn('No Reel URLs were supplied to the pipeline.', { label: options.label ?? 'default' });
     return { total: 0, errorCount: 0 };
   }
 
@@ -261,9 +275,18 @@ export async function runPipeline() {
     }
 
     await saveStorageState(session.context);
-    log.info('Pipeline complete.', { total: urls.length, errorCount });
+    log.info('Pipeline complete.', { total: urls.length, errorCount, label: options.label ?? 'default' });
     return { total: urls.length, errorCount };
   } finally {
     await closeBrowserContext(session);
   }
+}
+
+/**
+ * Run the full pipeline for every URL in data/input/reels.txt.
+ * @returns {Promise<{ total: number, errorCount: number }>}
+ */
+export async function runPipeline() {
+  const urls = await loadInputReelUrls(INPUT_REELS_PATH);
+  return runPipelineForUrls(urls, { label: 'input-file' });
 }

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "weekly-beauty",
+    "enabled": false,
+    "profileId": "default",
+    "keywords": [
+      "beauty"
+    ],
+    "generationMode": "conservative",
+    "transformationIntensity": "very_light",
+    "allowedPortabilityLabels": [
+      "portable",
+      "conditional"
+    ],
+    "minimumPortabilityScore": 40,
+    "referenceCount": 12,
+    "generateCount": 10,
+    "schedule": {
+      "type": "weekly",
+      "days": [
+        1
+      ],
+      "hour": 9,
+      "minute": 0,
+      "timezone": "Asia/Seoul"
+    }
+  }
+]

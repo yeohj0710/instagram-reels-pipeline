@@ -10,9 +10,21 @@ export const PROJECT_ROOT = path.resolve(__dirname, '../..');
 export const DATA_DIR = path.join(PROJECT_ROOT, 'data');
 export const INPUT_DIR = path.join(DATA_DIR, 'input');
 export const INPUT_REELS_PATH = path.join(INPUT_DIR, 'reels.txt');
+export const INPUT_KEYWORDS_PATH = path.join(INPUT_DIR, 'keywords.txt');
+export const INPUT_CREATORS_PATH = path.join(INPUT_DIR, 'creators.json');
+export const INPUT_CAMPAIGNS_PATH = path.join(INPUT_DIR, 'campaigns.json');
 export const AUTH_DIR = path.join(DATA_DIR, 'auth');
 export const AUTH_STATE_PATH = path.join(AUTH_DIR, 'storageState.json');
 export const REELS_DIR = path.join(DATA_DIR, 'reels');
+export const DISCOVERY_DIR = path.join(DATA_DIR, 'discovery');
+export const DISCOVERY_RUNS_DIR = path.join(DISCOVERY_DIR, 'runs');
+export const LIBRARIES_DIR = path.join(DATA_DIR, 'libraries');
+export const PLANNING_DIR = path.join(DATA_DIR, 'planning');
+export const PLANNING_RUNS_DIR = path.join(PLANNING_DIR, 'runs');
+export const PROFILES_DIR = path.join(PLANNING_DIR, 'profiles');
+export const PUBLISH_DIR = path.join(DATA_DIR, 'publish');
+export const PUBLISH_NOTION_DIR = path.join(PUBLISH_DIR, 'notion');
+export const PUBLISH_SCHEDULES_DIR = path.join(PUBLISH_DIR, 'schedules');
 
 /**
  * Ensure the base project data directories exist.
@@ -23,7 +35,13 @@ export async function ensureProjectDirectories() {
     ensureDir(DATA_DIR),
     ensureDir(INPUT_DIR),
     ensureDir(AUTH_DIR),
-    ensureDir(REELS_DIR)
+    ensureDir(REELS_DIR),
+    ensureDir(DISCOVERY_RUNS_DIR),
+    ensureDir(LIBRARIES_DIR),
+    ensureDir(PLANNING_RUNS_DIR),
+    ensureDir(PROFILES_DIR),
+    ensureDir(PUBLISH_NOTION_DIR),
+    ensureDir(PUBLISH_SCHEDULES_DIR)
   ]);
 }
 
@@ -66,10 +84,19 @@ export function parseShortcodeFromUrl(urlString) {
  *   mergedVideoPath: string,
  *   audioPath: string,
  *   framesDir: string,
- *   transcriptDir: string,
- *   transcriptJsonPath: string,
- *   transcriptTextPath: string,
- *   manifestPath: string
+  *   transcriptDir: string,
+  *   transcriptJsonPath: string,
+  *   transcriptTextPath: string,
+ *   manifestPath: string,
+ *   analysisDir: string,
+ *   signalsPath: string,
+ *   structurePath: string,
+ *   portabilityPath: string,
+ *   hookPath: string,
+ *   bodyPath: string,
+ *   ctaPath: string,
+ *   editingPath: string,
+ *   summaryPath: string
  * }}
  */
 export function buildReelPaths(urlString) {
@@ -77,6 +104,7 @@ export function buildReelPaths(urlString) {
   const reelDir = path.join(REELS_DIR, reelId);
   const mediaDir = path.join(reelDir, 'media');
   const transcriptDir = path.join(reelDir, 'transcript');
+  const analysisDir = path.join(reelDir, 'analysis');
 
   return {
     reelId,
@@ -92,7 +120,16 @@ export function buildReelPaths(urlString) {
     transcriptDir,
     transcriptJsonPath: path.join(transcriptDir, 'transcript.json'),
     transcriptTextPath: path.join(transcriptDir, 'transcript.txt'),
-    manifestPath: path.join(reelDir, 'manifest.json')
+    manifestPath: path.join(reelDir, 'manifest.json'),
+    analysisDir,
+    signalsPath: path.join(analysisDir, 'signals.json'),
+    structurePath: path.join(analysisDir, 'structure.json'),
+    portabilityPath: path.join(analysisDir, 'portability.json'),
+    hookPath: path.join(analysisDir, 'hook.json'),
+    bodyPath: path.join(analysisDir, 'body.json'),
+    ctaPath: path.join(analysisDir, 'cta.json'),
+    editingPath: path.join(analysisDir, 'editing.json'),
+    summaryPath: path.join(analysisDir, 'summary.md')
   };
 }
 
@@ -106,6 +143,67 @@ export async function ensureReelDirectories(reelPaths) {
     ensureDir(reelPaths.reelDir),
     ensureDir(reelPaths.mediaDir),
     ensureDir(reelPaths.framesDir),
-    ensureDir(reelPaths.transcriptDir)
+    ensureDir(reelPaths.transcriptDir),
+    ensureDir(reelPaths.analysisDir)
   ]);
+}
+
+/**
+ * Build paths for one discovery run.
+ * @param {string} runId
+ * @returns {{
+ *   runId: string,
+ *   runDir: string,
+ *   checkpointsDir: string,
+ *   statePath: string,
+ *   runPath: string,
+ *   frontierPath: string,
+ *   visitedPath: string,
+ *   candidatesPath: string,
+ *   rankedPath: string
+ * }}
+ */
+export function buildDiscoveryRunPaths(runId) {
+  const runDir = path.join(DISCOVERY_RUNS_DIR, runId);
+
+  return {
+    runId,
+    runDir,
+    checkpointsDir: path.join(runDir, 'checkpoints'),
+    statePath: path.join(runDir, 'checkpoints', 'state.json'),
+    runPath: path.join(runDir, 'run.json'),
+    frontierPath: path.join(runDir, 'frontier.jsonl'),
+    visitedPath: path.join(runDir, 'visited.jsonl'),
+    candidatesPath: path.join(runDir, 'candidates.jsonl'),
+    rankedPath: path.join(runDir, 'ranked.json')
+  };
+}
+
+/**
+ * Build paths for one planning run.
+ * @param {string} runId
+ * @returns {{
+ *   runId: string,
+ *   runDir: string,
+ *   briefPath: string,
+ *   candidatesPath: string,
+ *   selectedRefsPath: string,
+ *   scriptsDir: string,
+ *   packagesDir: string,
+ *   notionDir: string
+ * }}
+ */
+export function buildPlanningRunPaths(runId) {
+  const runDir = path.join(PLANNING_RUNS_DIR, runId);
+
+  return {
+    runId,
+    runDir,
+    briefPath: path.join(runDir, 'brief.json'),
+    candidatesPath: path.join(runDir, 'candidates.json'),
+    selectedRefsPath: path.join(runDir, 'selected_refs.json'),
+    scriptsDir: path.join(runDir, 'scripts'),
+    packagesDir: path.join(runDir, 'packages'),
+    notionDir: path.join(runDir, 'notion')
+  };
 }

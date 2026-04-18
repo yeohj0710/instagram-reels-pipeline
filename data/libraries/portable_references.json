@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2026-04-17T13:59:11.080Z",
+  "items": [
+    {
+      "referenceId": "dovhdyakkqa",
+      "author": "yuris__c",
+      "performanceScore": 48,
+      "portabilityScore": 72,
+      "portabilityLabel": "portable",
+      "reproducibilityCost": 2,
+      "referenceValueScore": 64,
+      "caption": "오디오 소리 꺼짐yuris__c팔로우여러분, 최근에 제가 새로운 리프팅을 받고 왔는데🔥… 더 보기재생 버튼 아이콘좋아요2688댓글269리포스트13공유하기저장더 보기",
+      "hook": "여러분 안녕하세요!",
+      "cta": "팔로우여러분",
+      "contentArchetype": "개인 근황/도입 인사 → 최근 받은 것(리프팅) 소개 예고 → 짧은 반응 유도(좋아요/팔로우/재생 버튼 암시)형 숏폼",
+      "reusable": [
+        "hook_structure",
+        "body_beat_order",
+        "cta_pattern",
+        "editing_rhythm"
+      ],
+      "avoid": []
+    }
+  ]
+}
