@@ -3,7 +3,7 @@ import { extractHashtags, looksLikeCta, normalizeWhitespace, parseMetricValue, s
 function parseDescriptionMetric(text, label) {
   const normalized = normalizeWhitespace(text);
   const match =
-    normalized.match(new RegExp(`([\\d,.]+\\s*(?:[KMB])\\s+${label}`, 'i')) ??
+    normalized.match(new RegExp(`([\\d,.]+\\s*(?:[KMB])?)\\s+${label}`, 'i')) ??
     normalized.match(new RegExp(`${label}[^\\d]{0,10}([\\d,.]+\\s*(?:[KMB])?)`, 'i'));
 
   return match ? parseMetricValue(match[1]) : null;
@@ -29,6 +29,20 @@ function parseManualMetric(record, key) {
   return null;
 }
 
+function parseDisplayedMetric(meta, key) {
+  const rawValue = key === 'shares' ? meta?.displayedCounts?.shares ?? meta?.displayedCounts?.reposts : meta?.displayedCounts?.[key];
+
+  if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+    return Math.round(rawValue);
+  }
+
+  if (typeof rawValue === 'string') {
+    return parseMetricValue(rawValue);
+  }
+
+  return null;
+}
+
 /**
  * Build normalized signals for a harvested reference.
  * Manual metrics entered by a human are preferred over page-derived heuristics.
@@ -42,12 +56,17 @@ export function buildReferenceSignals(bundle) {
   const manualComments = parseManualMetric(bundle.record, 'comments');
   const manualSaves = parseManualMetric(bundle.record, 'saves');
   const manualShares = parseManualMetric(bundle.record, 'shares');
+  const pageLikes = parseDisplayedMetric(bundle.meta, 'likes') ?? parseDescriptionMetric(metaDescription, 'likes?');
+  const pageComments = parseDisplayedMetric(bundle.meta, 'comments') ?? parseDescriptionMetric(metaDescription, 'comments?');
+  const pageViews = parseDisplayedMetric(bundle.meta, 'views') ?? parseDescriptionMetric(metaDescription, 'views?|plays?');
+  const pageSaves = parseDisplayedMetric(bundle.meta, 'saves');
+  const pageShares = parseDisplayedMetric(bundle.meta, 'shares');
 
-  const likes = manualLikes ?? parseDescriptionMetric(metaDescription, 'likes?');
-  const comments = manualComments ?? parseDescriptionMetric(metaDescription, 'comments?');
-  const views = manualViews ?? parseDescriptionMetric(metaDescription, 'views?|plays?');
-  const saves = manualSaves;
-  const shares = manualShares;
+  const likes = manualLikes ?? pageLikes;
+  const comments = manualComments ?? pageComments;
+  const views = manualViews ?? pageViews;
+  const saves = manualSaves ?? pageSaves;
+  const shares = manualShares ?? pageShares;
 
   const transcript = normalizeWhitespace(bundle.transcriptText);
   const caption = normalizeWhitespace(bundle.meta?.caption ?? '');
@@ -76,8 +95,8 @@ export function buildReferenceSignals(bundle) {
       views: manualViews !== null ? 'manual' : 'page',
       likes: manualLikes !== null ? 'manual' : 'page',
       comments: manualComments !== null ? 'manual' : 'page',
-      saves: manualSaves !== null ? 'manual' : 'manual_missing',
-      shares: manualShares !== null ? 'manual' : 'manual_missing'
+      saves: manualSaves !== null ? 'manual' : pageSaves !== null ? 'page' : 'page_missing',
+      shares: manualShares !== null ? 'manual' : pageShares !== null ? 'page' : 'page_missing'
     },
     performanceScore: engagementProxy,
     durationSeconds,

@@ -1,12 +1,12 @@
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { promises as fs } from 'node:fs';
+import { createReadStream, promises as fs } from 'node:fs';
 
-import { analyzePendingReferences, analyzeReferenceById } from '../workspace/analyze.js';
+import { analyzePendingReferences, analyzeReferenceById, analyzeReferenceIds } from '../workspace/analyze.js';
 import { listJobs, enqueueJob } from './jobs.js';
 import { generateCuratedPlan } from '../planning/generate.js';
-import { DATA_DIR, ensureProjectDirectories } from '../storage/paths.js';
+import { AUTH_STATE_PATH, DATA_DIR, ensureProjectDirectories } from '../storage/paths.js';
 import { deletePlan, getPlan, listPlans, updatePlan } from '../workspace/plans.js';
 import {
   createReference,
@@ -15,7 +15,8 @@ import {
   listReferences,
   updateReference
 } from '../workspace/references.js';
-import { processPendingReferences, processReferenceById } from '../workspace/process.js';
+import { processPendingReferences, processReferenceById, processReferenceIds } from '../workspace/process.js';
+import { fileExists } from '../utils/fs.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,19 +68,134 @@ async function readJsonBody(request) {
   return text ? JSON.parse(text) : {};
 }
 
-async function serveFile(response, absolutePath) {
+function supportsByteRange(extension) {
+  return extension === '.mp4' || extension === '.mp3';
+}
+
+function parseByteRange(rangeHeader, size) {
+  if (!rangeHeader || typeof rangeHeader !== 'string') {
+    return null;
+  }
+
+  const match = /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader.trim());
+
+  if (!match) {
+    return 'invalid';
+  }
+
+  const [, startText, endText] = match;
+
+  if (!startText && !endText) {
+    return 'invalid';
+  }
+
+  let start = 0;
+  let end = size - 1;
+
+  if (!startText) {
+    const suffixLength = Number.parseInt(endText, 10);
+
+    if (!Number.isFinite(suffixLength) || suffixLength <= 0) {
+      return 'invalid';
+    }
+
+    start = Math.max(size - suffixLength, 0);
+  } else {
+    start = Number.parseInt(startText, 10);
+
+    if (!Number.isFinite(start) || start < 0 || start >= size) {
+      return 'invalid';
+    }
+
+    if (endText) {
+      end = Number.parseInt(endText, 10);
+
+      if (!Number.isFinite(end) || end < start) {
+        return 'invalid';
+      }
+    }
+  }
+
+  end = Math.min(end, size - 1);
+
+  return { start, end };
+}
+
+function streamFile(response, absolutePath, options = {}) {
+  return new Promise((resolve, reject) => {
+    const stream = createReadStream(absolutePath, options);
+
+    stream.on('error', reject);
+    stream.on('end', resolve);
+    stream.pipe(response);
+  });
+}
+
+async function serveFile(request, response, absolutePath) {
   const extension = path.extname(absolutePath).toLowerCase();
   const contentType = MIME_TYPES[extension] ?? 'application/octet-stream';
-  const buffer = await fs.readFile(absolutePath);
+  const stat = await fs.stat(absolutePath);
+  const rangeEnabled = supportsByteRange(extension);
+  const headers = {
+    'Content-Type': contentType,
+    'Cache-Control': 'no-store',
+    'Content-Length': stat.size
+  };
+
+  if (rangeEnabled) {
+    headers['Accept-Ranges'] = 'bytes';
+  }
+
+  if (rangeEnabled && request.headers.range) {
+    const parsedRange = parseByteRange(request.headers.range, stat.size);
+
+    if (parsedRange === 'invalid') {
+      response.writeHead(416, {
+        ...headers,
+        'Content-Range': `bytes */${stat.size}`
+      });
+      response.end();
+      return;
+    }
+
+    if (parsedRange) {
+      const { start, end } = parsedRange;
+
+      response.writeHead(206, {
+        ...headers,
+        'Content-Length': end - start + 1,
+        'Content-Range': `bytes ${start}-${end}/${stat.size}`
+      });
+
+      if (request.method === 'HEAD') {
+        response.end();
+        return;
+      }
+
+      await streamFile(response, absolutePath, { start, end });
+      return;
+    }
+  }
 
   response.writeHead(200, {
-    'Content-Type': contentType,
-    'Cache-Control': 'no-store'
+    ...headers
   });
+
+  if (request.method === 'HEAD') {
+    response.end();
+    return;
+  }
+
+  if (rangeEnabled) {
+    await streamFile(response, absolutePath);
+    return;
+  }
+
+  const buffer = await fs.readFile(absolutePath);
   response.end(buffer);
 }
 
-async function servePublicAsset(response, pathname) {
+async function servePublicAsset(request, response, pathname) {
   const relativePath = pathname === '/' ? 'index.html' : pathname.slice(1);
   const absolutePath = path.resolve(PUBLIC_DIR, relativePath);
 
@@ -89,7 +205,7 @@ async function servePublicAsset(response, pathname) {
   }
 
   try {
-    await serveFile(response, absolutePath);
+    await serveFile(request, response, absolutePath);
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
       sendText(response, 404, 'Not found');
@@ -100,7 +216,7 @@ async function servePublicAsset(response, pathname) {
   }
 }
 
-async function serveDataAsset(response, pathname) {
+async function serveDataAsset(request, response, pathname) {
   const relativePath = pathname.replace(/^\/data\//, '');
   const absolutePath = path.resolve(DATA_DIR, relativePath);
   const resolvedDataDir = path.resolve(DATA_DIR);
@@ -111,7 +227,7 @@ async function serveDataAsset(response, pathname) {
   }
 
   try {
-    await serveFile(response, absolutePath);
+    await serveFile(request, response, absolutePath);
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
       sendText(response, 404, 'Not found');
@@ -130,6 +246,9 @@ async function getDashboardPayload() {
   ]);
 
   return {
+    auth: {
+      ready: await fileExists(AUTH_STATE_PATH)
+    },
     references: references.filter(Boolean),
     plans,
     jobs: listJobs()
@@ -141,6 +260,27 @@ function queueResponse(response, job) {
     queued: true,
     job
   });
+}
+
+async function runReferencePipeline(referenceIds) {
+  const reelIds = Array.from(new Set((Array.isArray(referenceIds) ? referenceIds : []).filter(Boolean)));
+
+  if (reelIds.length === 0) {
+    return {
+      reelIds: [],
+      processedCount: 0,
+      analyzedCount: 0
+    };
+  }
+
+  await processReferenceIds(reelIds);
+  await analyzeReferenceIds(reelIds);
+
+  return {
+    reelIds,
+    processedCount: reelIds.length,
+    analyzedCount: reelIds.length
+  };
 }
 
 function matchReferenceRoute(pathname) {
@@ -187,8 +327,59 @@ async function handleApiRequest(request, response, url) {
 
   if (request.method === 'POST' && pathname === '/api/references') {
     const body = await readJsonBody(request);
+    const rawUrls = Array.isArray(body.urls) ? body.urls : [body.url];
+    const urls = Array.from(
+      new Set(
+        rawUrls
+          .map((item) => String(item ?? '').trim())
+          .filter(Boolean)
+      )
+    );
+
+    if (urls.length === 0) {
+      sendJson(response, 400, { error: 'At least one Instagram Reel URL is required.' });
+      return;
+    }
+
+    const references = [];
+
+    for (const url of urls) {
+      references.push(
+        await createReference({
+          collectionType: body.collectionType,
+          url,
+          title: urls.length === 1 ? body.title : '',
+          topic: body.topic,
+          tags: body.tags,
+          notes: body.notes
+        })
+      );
+    }
+
+    let job = null;
+    let warning = null;
+    const autoQueue = body.autoQueue !== false;
+
+    if (autoQueue) {
+      const hasAuthState = await fileExists(AUTH_STATE_PATH);
+
+      if (hasAuthState) {
+        job = enqueueJob({
+          kind: 'ingest-references',
+          label: `Process and analyze ${references.length} reference${references.length === 1 ? '' : 's'}`,
+          handler: () => runReferencePipeline(references.map((reference) => reference.reelId))
+        });
+      } else {
+        warning = '링크는 저장됐지만 Instagram 로그인 세션이 없어 자동 처리/분석 큐는 넣지 않았습니다. 먼저 npm run login 이 필요합니다.';
+      }
+    }
+
     sendJson(response, 201, {
-      reference: await createReference(body)
+      reference: references[0] ?? null,
+      references,
+      job,
+      autoQueued: Boolean(job),
+      warning
     });
     return;
   }
@@ -334,11 +525,11 @@ export async function startAppServer(input) {
       }
 
       if (url.pathname.startsWith('/data/')) {
-        await serveDataAsset(response, url.pathname);
+        await serveDataAsset(request, response, url.pathname);
         return;
       }
 
-      await servePublicAsset(response, url.pathname === '/' ? '/index.html' : url.pathname);
+      await servePublicAsset(request, response, url.pathname === '/' ? '/index.html' : url.pathname);
     } catch (error) {
       sendJson(response, 500, {
         error: error instanceof Error ? error.message : String(error)

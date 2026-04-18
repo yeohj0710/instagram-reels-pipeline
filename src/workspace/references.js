@@ -1,8 +1,9 @@
 import path from 'node:path';
 
+import { normalizeSourceToMeta } from '../scraper/instagram.js';
 import { buildReelPaths, ensureProjectDirectories, REELS_DIR } from '../storage/paths.js';
 import { listDirectories, readJson, readTextFile, removeDir, writeJson } from '../utils/fs.js';
-import { normalizeWhitespace } from '../utils/text.js';
+import { firstSentence, normalizeWhitespace, parseMetricValue } from '../utils/text.js';
 
 export const COLLECTION_TYPES = ['information', 'format', 'unassigned'];
 
@@ -29,6 +30,9 @@ const DEFAULT_SOURCE_SNAPSHOT = {
   pageLanguage: null,
   posterUrl: null
 };
+
+const TITLE_UI_NOISE_PATTERN =
+  /\b(?:likes?|views?|comments?|shares?|save|follow|following|audio|original audio|button|icon|tagged|instagram)\b/i;
 
 function now() {
   return new Date().toISOString();
@@ -185,19 +189,258 @@ function buildDataUrls(reelId) {
   };
 }
 
+function formatMetricString(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return new Intl.NumberFormat('en-US').format(Math.round(value));
+  }
+
+  const parsed = parseMetricValue(value);
+
+  if (parsed !== null) {
+    return new Intl.NumberFormat('en-US').format(parsed);
+  }
+
+  return normalizeWhitespace(value);
+}
+
+function deriveAutoMetrics(meta) {
+  const displayedCounts = meta?.displayedCounts ?? {};
+
+  return {
+    views: formatMetricString(displayedCounts.views),
+    likes: formatMetricString(displayedCounts.likes),
+    comments: formatMetricString(displayedCounts.comments),
+    saves: formatMetricString(displayedCounts.saves),
+    shares: formatMetricString(displayedCounts.shares ?? displayedCounts.reposts),
+    retention: '',
+    notes: ''
+  };
+}
+
+function mergeManualMetricsWithAuto(record, meta) {
+  const autoMetrics = deriveAutoMetrics(meta);
+  const manualMetrics = normalizeManualMetrics(record?.manualMetrics);
+
+  return {
+    ...manualMetrics,
+    views: manualMetrics.views || autoMetrics.views,
+    likes: manualMetrics.likes || autoMetrics.likes,
+    comments: manualMetrics.comments || autoMetrics.comments,
+    saves: manualMetrics.saves || autoMetrics.saves,
+    shares: manualMetrics.shares || autoMetrics.shares
+  };
+}
+
+function pickDisplayedMetricValue(metaValue, normalizedValue) {
+  if (typeof metaValue === 'number' && Number.isFinite(metaValue)) {
+    return metaValue;
+  }
+
+  if (typeof metaValue === 'string') {
+    const parsed = parseMetricValue(metaValue);
+
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  return normalizedValue ?? null;
+}
+
+function buildEffectiveMeta(meta, source) {
+  const normalizedMeta = source && typeof source === 'object' ? normalizeSourceToMeta(source) : {};
+  const metaDisplayedCounts = meta?.displayedCounts ?? {};
+  const normalizedDisplayedCounts = normalizedMeta.displayedCounts ?? {};
+
+  return {
+    ...normalizedMeta,
+    ...meta,
+    displayedCounts: {
+      ...normalizedDisplayedCounts,
+      ...metaDisplayedCounts,
+      likes: pickDisplayedMetricValue(metaDisplayedCounts.likes, normalizedDisplayedCounts.likes),
+      views: pickDisplayedMetricValue(metaDisplayedCounts.views, normalizedDisplayedCounts.views),
+      comments: pickDisplayedMetricValue(metaDisplayedCounts.comments, normalizedDisplayedCounts.comments),
+      saves: pickDisplayedMetricValue(metaDisplayedCounts.saves, normalizedDisplayedCounts.saves),
+      shares: pickDisplayedMetricValue(metaDisplayedCounts.shares, normalizedDisplayedCounts.shares),
+      reposts: pickDisplayedMetricValue(metaDisplayedCounts.reposts, normalizedDisplayedCounts.reposts)
+    }
+  };
+}
+
+function compactText(text, maxLength = 82) {
+  const normalized = normalizeWhitespace(text);
+
+  if (!normalized) {
+    return '';
+  }
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, Math.max(12, maxLength - 3)).trim()}...`;
+}
+
+function normalizeCaptionText(text) {
+  let normalized = normalizeWhitespace(text);
+
+  if (!normalized) {
+    return '';
+  }
+
+  const quotedMatch = normalized.match(/["'](.+?)["']/);
+
+  if (quotedMatch?.[1]) {
+    normalized = normalizeWhitespace(quotedMatch[1]);
+  }
+
+  normalized = normalized
+    .replace(/^Instagram[^:]*:\s*/i, '')
+    .replace(
+      /^\d[\d,.]*\s+(?:likes?|views?|comments?)\s*,\s*\d[\d,.]*\s+(?:likes?|views?|comments?)\s*-\s*[^-]+-\s*[^:]+:\s*/i,
+      ''
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return normalized;
+}
+
+function isUsableDisplayTitle(text) {
+  const normalized = normalizeCaptionText(text);
+
+  if (!normalized || normalized.length < 6 || normalized.length > 96) {
+    return false;
+  }
+
+  const handles = normalized.match(/@[\w._-]+/g) ?? [];
+  const hashtags = normalized.match(/#[\p{L}\p{N}_-]+/gu) ?? [];
+  const longDigitRuns = normalized.match(/\d{3,}/g) ?? [];
+
+  if (handles.length > 1 || hashtags.length > 2 || longDigitRuns.length > 1) {
+    return false;
+  }
+
+  if (TITLE_UI_NOISE_PATTERN.test(normalized) && normalized.length > 42) {
+    return false;
+  }
+
+  return /[\p{L}\p{N}]/u.test(normalized);
+}
+
+function buildDisplayTitle(bundle, record, collectionAnalysis) {
+  const author = normalizeWhitespace(record.sourceSnapshot.author ?? bundle.meta?.author ?? '');
+
+  if (record.title) {
+    return {
+      title: compactText(normalizeCaptionText(record.title)),
+      source: 'manual'
+    };
+  }
+
+  if (record.collectionType === 'unassigned') {
+    if (author) {
+      return {
+        title: `@${author} - ${record.reelId}`,
+        source: 'author_fallback'
+      };
+    }
+
+    return {
+      title: record.reelId,
+      source: 'reel_id_fallback'
+    };
+  }
+
+  const candidates = [
+    { source: 'analysis', value: collectionAnalysis?.summary },
+    { source: 'hook', value: bundle.structure?.hook?.text },
+    { source: 'transcript', value: firstSentence(bundle.transcriptText) },
+    { source: 'caption', value: bundle.meta?.caption }
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate.value) {
+      continue;
+    }
+
+    const normalized = normalizeCaptionText(candidate.value);
+
+    if (isUsableDisplayTitle(normalized)) {
+      return {
+        title: compactText(normalized),
+        source: candidate.source
+      };
+    }
+  }
+
+  const topic = normalizeWhitespace(record.topic);
+
+  if (topic && author) {
+    return {
+      title: compactText(`${topic} - @${author}`),
+      source: 'topic_author_fallback'
+    };
+  }
+
+  if (author) {
+    return {
+      title: `@${author} - ${record.reelId}`,
+      source: 'author_fallback'
+    };
+  }
+
+  return {
+    title: record.reelId,
+    source: 'reel_id_fallback'
+  };
+}
+
+function buildPreviewSnippet(bundle, collectionAnalysis) {
+  const candidates = [
+    collectionAnalysis?.summary,
+    bundle.structure?.body?.summary,
+    firstSentence(bundle.transcriptText),
+    bundle.meta?.caption
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeCaptionText(candidate);
+
+    if (normalized && normalized.length >= 12) {
+      return compactText(normalized, 120);
+    }
+  }
+
+  return '';
+}
+
 function buildReferenceSummary(bundle, record) {
   const collectionAnalysis = record.collectionType === 'information' ? bundle.information : bundle.format;
+  const displayTitle = buildDisplayTitle(bundle, record, collectionAnalysis);
+  const manualMetrics = normalizeManualMetrics(record?.manualMetrics);
+  const autoMetrics = deriveAutoMetrics(bundle.meta);
+  const displayMetrics = mergeManualMetricsWithAuto(record, bundle.meta);
 
   return {
     reelId: record.reelId,
     url: record.url,
     collectionType: record.collectionType,
-    title: record.title || collectionAnalysis?.summary || bundle.meta?.caption || record.reelId,
+    title: displayTitle.title,
+    manualTitle: record.title,
+    titleSource: displayTitle.source,
     topic: record.topic,
     tags: record.tags,
     notes: record.notes,
     curation: record.curation,
-    manualMetrics: record.manualMetrics,
+    manualMetrics,
+    autoMetrics,
+    displayMetrics,
     sourceSnapshot: {
       ...record.sourceSnapshot,
       author: record.sourceSnapshot.author ?? bundle.meta?.author ?? null,
@@ -217,6 +460,7 @@ function buildReferenceSummary(bundle, record) {
       bundle.format?.hookFormula ??
       bundle.information?.keyTakeaways?.[0]?.headline ??
       null,
+    previewSnippet: buildPreviewSnippet(bundle, collectionAnalysis),
     transcriptPreview: bundle.transcriptText ? bundle.transcriptText.slice(0, 240) : '',
     assetUrls: buildDataUrls(record.reelId)
   };
@@ -225,9 +469,10 @@ function buildReferenceSummary(bundle, record) {
 async function loadBundleForReference(reelId) {
   const reelPaths = buildReelPaths(`https://www.instagram.com/reels/${reelId}/`);
 
-  const [record, meta, manifest, structure, portability, information, format, transcriptText] = await Promise.all([
+  const [record, meta, source, manifest, structure, portability, information, format, transcriptText] = await Promise.all([
     readJson(reelPaths.recordPath, null),
     readJson(reelPaths.metaPath, {}),
+    readJson(reelPaths.sourcePath, {}),
     readJson(reelPaths.manifestPath, {}),
     readJson(reelPaths.structurePath, null),
     readJson(reelPaths.portabilityPath, null),
@@ -236,19 +481,21 @@ async function loadBundleForReference(reelId) {
     readTextFile(reelPaths.transcriptTextPath).catch(() => '')
   ]);
 
-  if (!record && Object.keys(meta).length === 0 && Object.keys(manifest).length === 0) {
+  const effectiveMeta = buildEffectiveMeta(meta, source);
+
+  if (!record && Object.keys(effectiveMeta).length === 0 && Object.keys(manifest).length === 0) {
     return null;
   }
 
   const normalizedRecord = normalizeReferenceRecord(record ?? {}, {
     reelId,
-    url: meta.url ?? manifest.sourceUrl ?? null,
+    url: effectiveMeta.url ?? manifest.sourceUrl ?? null,
     sourceSnapshot: {
-      author: meta.author ?? null,
-      caption: meta.caption ?? null,
-      durationSeconds: meta.durationSeconds ?? null,
-      pageLanguage: meta.pageLanguage ?? null,
-      posterUrl: meta.posterUrl ?? null
+      author: effectiveMeta.author ?? null,
+      caption: effectiveMeta.caption ?? null,
+      durationSeconds: effectiveMeta.durationSeconds ?? null,
+      pageLanguage: effectiveMeta.pageLanguage ?? null,
+      posterUrl: effectiveMeta.posterUrl ?? null
     }
   });
 
@@ -256,7 +503,8 @@ async function loadBundleForReference(reelId) {
     reelId,
     reelPaths,
     record: normalizedRecord,
-    meta,
+    meta: effectiveMeta,
+    source,
     manifest,
     structure,
     portability,

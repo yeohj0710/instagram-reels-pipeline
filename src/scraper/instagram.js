@@ -1,10 +1,22 @@
 import { parseShortcodeFromUrl } from '../storage/paths.js';
 import { normalizeLineEndings, readTextFile } from '../utils/fs.js';
 import { log } from '../utils/log.js';
+import { normalizeWhitespace, parseMetricValue } from '../utils/text.js';
 
 const COUNT_PATTERN = /\b(?:[\d,.]+|\d+\.\d+[KMB])\s*(?:likes?|views?|comments?)\b/i;
 const NOISY_TEXT_PATTERN =
   /^(?:instagram|reels|reel|like|likes|comment|comments|share|share this|follow|following|message|audio|original audio|more|home|search|explore|profile)$/i;
+const CAPTION_UI_NOISE_PATTERN =
+  /\b(?:likes?|views?|comments?|share|save|follow|following|message|audio|original audio|button|icon|tagged|instagram)\b/i;
+const METRIC_VALUE_PATTERN = /([\d,.]+(?:\s*(?:K|M|B|\uCC9C|\uB9CC|\uC5B5))?)/i;
+const METRIC_LABEL_PATTERNS = {
+  likes: ['\uC88B\uC544\uC694', 'likes?', 'like'],
+  views: ['\uC870\uD68C\uC218?', '\uC870\uD68C', '\uC7AC\uC0DD\uC218?', '\uC7AC\uC0DD', 'plays?', 'views?'],
+  comments: ['\uB313\uAE00', 'comments?', 'comment'],
+  reposts: ['\uB9AC\uD3EC\uC2A4\uD2B8', 'reposts?', 'repost'],
+  shares: ['\uACF5\uC720(?:\uD558\uAE30)?', 'shares?', 'share'],
+  saves: ['\uC800\uC7A5(?:\uC218)?', 'saves?', 'save']
+};
 
 function uniqueStrings(values) {
   return Array.from(
@@ -235,22 +247,96 @@ function parseAuthorFromOgTitle(ogTitle) {
   return match?.[1]?.trim() || null;
 }
 
+function normalizeCaptionCandidate(text) {
+  if (typeof text !== 'string') {
+    return '';
+  }
+
+  let normalized = normalizeWhitespace(text);
+
+  if (!normalized) {
+    return '';
+  }
+
+  const quotedMatch = normalized.match(/["'](.+?)["']/);
+
+  if (quotedMatch?.[1]) {
+    normalized = normalizeWhitespace(quotedMatch[1]);
+  }
+
+  normalized = normalized
+    .replace(/^Instagram[^:]*:\s*/i, '')
+    .replace(
+      /^\d[\d,.]*\s+(?:likes?|views?|comments?)\s*,\s*\d[\d,.]*\s+(?:likes?|views?|comments?)\s*-\s*[^-]+-\s*[^:]+:\s*/i,
+      ''
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return normalized;
+}
+
+function scoreCaptionCandidate(text) {
+  const normalized = normalizeCaptionCandidate(text);
+
+  if (!normalized || normalized.length < 12 || normalized.length > 500) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  let score = 0;
+
+  if (normalized.length >= 20 && normalized.length <= 180) {
+    score += 20;
+  } else if (normalized.length <= 260) {
+    score += 8;
+  }
+
+  if (/[.!?]/.test(normalized)) {
+    score += 8;
+  }
+
+  if (/[\p{L}]/u.test(normalized)) {
+    score += 8;
+  }
+
+  if (COUNT_PATTERN.test(normalized)) {
+    score -= 18;
+  }
+
+  if (CAPTION_UI_NOISE_PATTERN.test(normalized)) {
+    score -= 22;
+  }
+
+  score -= (normalized.match(/@[\w._-]+/g) ?? []).length * 6;
+  score -= Math.max(0, (normalized.match(/#[\p{L}\p{N}_-]+/gu) ?? []).length - 6) * 3;
+  score -= Math.max(0, (normalized.match(/\d{3,}/g) ?? []).length - 1) * 6;
+
+  return score;
+}
+
 function pickCaption(source, videoObject) {
-  const fromCandidates = (source.captionCandidates ?? []).find(
-    (text) => text.length >= 15 && text.length <= 280 && !NOISY_TEXT_PATTERN.test(text) && !COUNT_PATTERN.test(text)
-  );
-
-  const jsonLdCaption =
-    (typeof videoObject?.caption === 'string' && videoObject.caption.trim()) ||
-    (typeof videoObject?.description === 'string' && videoObject.description.trim()) ||
-    null;
-
   const ogDescription =
     (typeof source.metaTags?.['og:description'] === 'string' && source.metaTags['og:description'].trim()) ||
     (typeof source.metaTags?.description === 'string' && source.metaTags.description.trim()) ||
     null;
 
-  return fromCandidates ?? jsonLdCaption ?? ogDescription ?? null;
+  const candidates = uniqueStrings([
+    videoObject?.caption,
+    videoObject?.description,
+    ogDescription,
+    ...((source.captionCandidates ?? []).slice(0, 20))
+  ])
+    .map((text) => normalizeCaptionCandidate(text))
+    .filter((text) => text.length >= 12 && !NOISY_TEXT_PATTERN.test(text));
+
+  const bestCandidate = candidates
+    .map((text) => ({
+      text,
+      score: scoreCaptionCandidate(text)
+    }))
+    .sort((left, right) => right.score - left.score)[0];
+
+  return bestCandidate && Number.isFinite(bestCandidate.score) ? bestCandidate.text : null;
 }
 
 function pickAuthor(source, videoObject) {
@@ -264,6 +350,80 @@ function pickAuthor(source, videoObject) {
 
 function pickCountText(texts, needle) {
   return texts.find((text) => new RegExp(`\\b${needle}s?\\b`, 'i').test(text)) ?? null;
+}
+
+function collectMetricTextCandidates(source) {
+  return uniqueStrings([
+    source.metaTags?.description,
+    source.metaTags?.['og:description'],
+    ...(Array.isArray(source.countTexts) ? source.countTexts.slice(0, 30) : []),
+    ...(Array.isArray(source.captionCandidates) ? source.captionCandidates.slice(0, 20) : []),
+    ...(Array.isArray(source.visibleTexts) ? source.visibleTexts.slice(0, 60) : [])
+  ]);
+}
+
+function extractMetricValueFromText(text, metricKey) {
+  const normalized = normalizeWhitespace(text);
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (metricKey === 'comments' && /\bno comments?\b/i.test(normalized)) {
+    return 0;
+  }
+
+  const labels = METRIC_LABEL_PATTERNS[metricKey] ?? [];
+
+  for (const label of labels) {
+    const patterns = [
+      new RegExp(`${label}\\s*[:?-]?\\s*${METRIC_VALUE_PATTERN.source}`, 'i'),
+      new RegExp(`${METRIC_VALUE_PATTERN.source}\\s*${label}`, 'i')
+    ];
+
+    for (const pattern of patterns) {
+      const match = normalized.match(pattern);
+      const value = parseMetricValue(match?.[1]);
+
+      if (value !== null) {
+        return value;
+      }
+    }
+  }
+
+  return null;
+}
+
+function pickMetricValue(texts, metricKey) {
+  for (const text of texts) {
+    const value = extractMetricValueFromText(text, metricKey);
+
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function buildDisplayedCounts(source) {
+  const texts = collectMetricTextCandidates(source);
+  const likes = pickMetricValue(texts, 'likes');
+  const views = pickMetricValue(texts, 'views');
+  const comments = pickMetricValue(texts, 'comments');
+  const reposts = pickMetricValue(texts, 'reposts');
+  const shares = pickMetricValue(texts, 'shares') ?? reposts;
+  const saves = pickMetricValue(texts, 'saves');
+
+  return {
+    likes,
+    views,
+    comments,
+    reposts,
+    shares,
+    saves,
+    raw: texts.slice(0, 20)
+  };
 }
 
 function buildMediaCandidates(source, networkCandidates) {
@@ -492,8 +652,9 @@ export async function collectReelSource(page, url) {
         }
       };
 
+      const root = document.querySelector('article') ?? document.querySelector('main') ?? document.body;
+
       const collectVisibleTexts = () => {
-        const root = document.querySelector('main') ?? document.body;
         const results = [];
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         let node = walker.nextNode();
@@ -517,7 +678,7 @@ export async function collectReelSource(page, url) {
       };
 
       const authorCandidates = unique(
-        [...document.querySelectorAll('main a[href], article a[href], header a[href]')]
+        [...root.querySelectorAll('a[href]'), ...document.querySelectorAll('header a[href]')]
           .map((element) => ({
             text: normalize(element.textContent),
             href: element.getAttribute('href') ?? ''
@@ -527,7 +688,7 @@ export async function collectReelSource(page, url) {
       ).slice(0, 30);
 
       const captionCandidates = unique(
-        [...document.querySelectorAll('main h1, article h1, main span, article span, main div, article div')]
+        [...root.querySelectorAll('h1, h2, span, div')]
           .map((element) => normalize(element.textContent))
           .filter((text) => text.length >= 8 && text.length <= 280)
       ).slice(0, 80);
@@ -556,7 +717,13 @@ export async function collectReelSource(page, url) {
         visibleTexts,
         authorCandidates,
         captionCandidates,
-        countTexts: visibleTexts.filter((text) => /\b(?:likes?|views?|comments?)\b/i.test(text)).slice(0, 20),
+        countTexts: visibleTexts
+          .filter((text) =>
+            /(?:likes?|views?|comments?|plays?|reposts?|shares?|saves?|\uC88B\uC544\uC694|\uB313\uAE00|\uC870\uD68C|\uC7AC\uC0DD|\uB9AC\uD3EC\uC2A4\uD2B8|\uACF5\uC720|\uC800\uC7A5)/i.test(
+              text
+            )
+          )
+          .slice(0, 30),
         videoElement: video
           ? {
               currentSrc: normalize(video.currentSrc || '') || null,
@@ -599,7 +766,7 @@ export function normalizeSourceToMeta(source) {
     }) ?? null;
 
   const orderedVideoCandidates = listDownloadableVideoCandidates(source);
-  const displayedCounts = uniqueStrings(source.countTexts ?? []);
+  const displayedCounts = buildDisplayedCounts(source);
 
   return {
     url: source.inputUrl ?? null,
@@ -607,12 +774,7 @@ export function normalizeSourceToMeta(source) {
     shortcode: source.shortcode ?? null,
     caption: pickCaption(source, videoObject),
     author: pickAuthor(source, videoObject),
-    displayedCounts: {
-      likes: pickCountText(displayedCounts, 'like'),
-      views: pickCountText(displayedCounts, 'view'),
-      comments: pickCountText(displayedCounts, 'comment'),
-      raw: displayedCounts
-    },
+    displayedCounts,
     pageTitle: source.pageTitle ?? null,
     pageLanguage: source.pageLanguage ?? null,
     posterUrl: source.videoElement?.poster ?? source.metaTags?.['og:image'] ?? null,

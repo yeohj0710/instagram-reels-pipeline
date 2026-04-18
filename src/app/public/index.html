@@ -3,28 +3,43 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Reels Workspace</title>
+    <title>Instagram Reels Pipeline</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="shell">
       <section class="topbar">
-        <div>
-          <p class="eyebrow">Medical Beauty Reels Workspace</p>
-          <h1>정보 릴스와 형식 릴스를 분리해서 관리하고 바로 기획안까지 만듭니다.</h1>
+        <div class="hero-copy">
+          <p class="eyebrow">Instagram Reels Pipeline</p>
+          <h1>릴스 데이터를 정리하고 분석해서 다음 기획 초안까지 이어가는 워크스페이스</h1>
+          <p class="hero-note">
+            정보 레퍼런스와 형식 레퍼런스를 나눠 저장하고, 처리 결과와 분석 산출물을 파일 기준으로 관리합니다.
+          </p>
         </div>
+
         <div class="topbar-actions">
           <button type="button" id="refresh-button">새로고침</button>
-          <button type="button" data-bulk-action="process-pending">미처리 링크 처리</button>
-          <button type="button" data-bulk-action="analyze-pending">미분석 링크 분석</button>
+          <button type="button" data-bulk-action="process-pending">미처리 레퍼런스 처리</button>
+          <button type="button" data-bulk-action="analyze-pending">미분석 레퍼런스 분석</button>
         </div>
       </section>
 
       <section class="stats" id="stats"></section>
 
       <section class="composer">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Reference Intake</p>
+            <h2>릴스 레퍼런스 등록</h2>
+            <p class="helper-note">
+              링크를 한 줄에 하나씩 넣으면 저장됩니다. 제목, 토픽, 태그는 필요한 만큼만 보정하면 됩니다.
+            </p>
+          </div>
+          <div id="session-pill" class="session-pill">세션 확인 중</div>
+        </div>
+
         <form id="create-reference-form" class="composer-form">
-          <div class="field-row">
+          <div class="field-row field-row-3">
             <label>
               <span>구분</span>
               <select name="collectionType" required>
@@ -32,31 +47,52 @@
                 <option value="format">형식 릴스</option>
               </select>
             </label>
-            <label class="wide">
-              <span>Instagram 링크</span>
-              <input name="url" type="url" placeholder="https://www.instagram.com/reel/..." required />
-            </label>
-          </div>
-          <div class="field-row">
+
             <label>
-              <span>제목</span>
-              <input name="title" type="text" placeholder="관리용 제목" />
+              <span>관리 제목</span>
+              <input name="title" type="text" placeholder="한 개만 등록할 때만 입력해도 충분합니다." />
             </label>
+
             <label>
               <span>토픽</span>
-              <input name="topic" type="text" placeholder="예: 써마지, 모공, 리프팅" />
-            </label>
-            <label>
-              <span>태그</span>
-              <input name="tags" type="text" placeholder="쉼표로 구분" />
+              <input name="topic" type="text" placeholder="예: 시술, 모공, 상담, 후킹" />
             </label>
           </div>
-          <label>
-            <span>메모</span>
-            <textarea name="notes" rows="3" placeholder="왜 넣는지, 사람이 본 포인트, 검토 메모"></textarea>
-          </label>
+
+          <div class="field-row field-row-2">
+            <label class="wide">
+              <span>릴스 주소</span>
+              <textarea
+                name="urls"
+                rows="5"
+                placeholder="https://www.instagram.com/reel/...
+https://www.instagram.com/reel/..."
+                required
+              ></textarea>
+            </label>
+
+            <div class="stack-panel">
+              <label>
+                <span>태그</span>
+                <input name="tags" type="text" placeholder="쉼표로 구분" />
+              </label>
+
+              <label>
+                <span>메모</span>
+                <textarea name="notes" rows="4" placeholder="왜 저장하는지, 나중에 볼 포인트를 적어둡니다."></textarea>
+              </label>
+
+              <label class="checkbox-row">
+                <input name="autoQueue" type="checkbox" checked />
+                <span>저장 직후 자동 처리 + 자동 분석</span>
+              </label>
+
+              <p class="helper-text">Instagram 로그인 세션이 없으면 저장만 되고 자동 처리 단계는 시작되지 않습니다.</p>
+            </div>
+          </div>
+
           <div class="composer-submit">
-            <button type="submit">링크 저장</button>
+            <button type="submit">레퍼런스 저장</button>
             <p id="status-message" class="status-message"></p>
           </div>
         </form>
@@ -67,8 +103,10 @@
           <div class="column-header">
             <div>
               <p class="eyebrow">Information</p>
-              <h2>정보 릴스</h2>
+              <h2>정보 레퍼런스</h2>
+              <p class="section-copy">핵심 정보, 주장, 인사이트를 정리해두는 레퍼런스입니다.</p>
             </div>
+            <span id="information-meta" class="section-meta"></span>
           </div>
           <div id="information-list" class="reference-list"></div>
         </section>
@@ -77,8 +115,10 @@
           <div class="column-header">
             <div>
               <p class="eyebrow">Format</p>
-              <h2>형식 릴스</h2>
+              <h2>형식 레퍼런스</h2>
+              <p class="section-copy">구성, 전달 방식, 화면 리듬을 참고하는 레퍼런스입니다.</p>
             </div>
+            <span id="format-meta" class="section-meta"></span>
           </div>
           <div id="format-list" class="reference-list"></div>
         </section>
@@ -87,9 +127,11 @@
       <section class="column" id="unassigned-section" hidden>
         <div class="column-header">
           <div>
-            <p class="eyebrow">Legacy</p>
+            <p class="eyebrow">Unassigned</p>
             <h2>미분류 레퍼런스</h2>
+            <p class="section-copy">아직 정보/형식으로 나누지 않은 항목입니다.</p>
           </div>
+          <span id="unassigned-meta" class="section-meta"></span>
         </div>
         <div id="unassigned-list" class="reference-list"></div>
       </section>
@@ -100,39 +142,42 @@
             <div>
               <p class="eyebrow">Planner</p>
               <h2>기획안 생성</h2>
+              <p class="section-copy">선별한 정보 레퍼런스와 형식 레퍼런스를 묶어 초안을 만듭니다.</p>
             </div>
           </div>
+
           <form id="plan-form" class="plan-form">
-            <div class="field-row">
+            <div class="field-row field-row-2">
               <label>
                 <span>기획안 제목</span>
-                <input name="title" type="text" placeholder="예: 써마지 인사이트 x 질문형 오프닝" />
+                <input name="title" type="text" placeholder="예: 상담 릴스 인사이트 x 질문형 훅" />
               </label>
+
               <label>
                 <span>토픽</span>
-                <input name="topic" type="text" placeholder="비워두면 정보 릴스 토픽을 사용" />
+                <input name="topic" type="text" placeholder="비워두면 정보 레퍼런스 토픽을 우선 사용합니다." />
               </label>
             </div>
+
             <div class="selection-grid">
               <div>
                 <p class="selection-title">정보 레퍼런스 선택</p>
                 <div id="plan-info-options" class="selection-list"></div>
               </div>
+
               <div>
                 <p class="selection-title">형식 레퍼런스 선택</p>
                 <div id="plan-format-options" class="selection-list"></div>
               </div>
             </div>
+
             <label>
               <span>매칭 메모</span>
-              <textarea
-                name="notes"
-                rows="3"
-                placeholder="왜 이 조합이 맞는지, 사람이 보고 느낀 조합 포인트"
-              ></textarea>
+              <textarea name="notes" rows="3" placeholder="왜 이 조합이 맞는지, 검수 포인트를 적어둡니다."></textarea>
             </label>
+
             <div class="composer-submit">
-              <button type="submit">기획안 생성 큐에 넣기</button>
+              <button type="submit">기획안 생성</button>
             </div>
           </form>
         </section>
@@ -141,7 +186,8 @@
           <div class="column-header">
             <div>
               <p class="eyebrow">Saved Plans</p>
-              <h2>기획안</h2>
+              <h2>저장된 기획안</h2>
+              <p class="section-copy">생성한 초안을 다시 열어 수정하거나 상태를 바꿉니다.</p>
             </div>
           </div>
           <div id="plans-list" class="plans-list"></div>
@@ -153,6 +199,7 @@
           <div>
             <p class="eyebrow">Queue</p>
             <h2>작업 큐</h2>
+            <p class="section-copy">백그라운드 작업은 순서대로 처리되고, 서버를 재시작하면 큐 기록만 초기화됩니다.</p>
           </div>
         </div>
         <div id="jobs-list" class="jobs-list"></div>
