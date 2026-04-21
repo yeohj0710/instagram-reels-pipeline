@@ -15,7 +15,8 @@
 
 ## Primary commands
 
-- `npm start` or `npm run app`: 로컬 웹앱 실행
+- `npm run dev`: 로컬 웹앱 실행
+- `npm run app` / `npm start`: `npm run dev` 별칭
 - `npm run login`: Instagram 세션 저장
 - `npm run run`: 미처리 레퍼런스 처리
 - `npm run analyze`: 미분석 레퍼런스 분석

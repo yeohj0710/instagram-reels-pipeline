@@ -8,17 +8,19 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "app": "node scripts/app.js",
+    "dev": "node scripts/app.js",
+    "app": "npm run dev",
     "login": "node scripts/login.js",
     "analyze": "node scripts/analyze.js",
     "generate": "node scripts/generate.js",
     "run": "node scripts/run.js",
-    "start": "npm run app"
+    "start": "npm run dev"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
     "openai": "^6.34.0",
     "playwright": "^1.59.1",
+    "tesseract.js": "^7.0.0",
     "zod": "^4.3.6"
   }
 }

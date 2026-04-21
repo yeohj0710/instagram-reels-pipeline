@@ -62,7 +62,7 @@
 6. 웹앱 실행
 
    ```bash
-   npm start
+npm run dev
    ```
 
 7. 브라우저에서 `http://127.0.0.1:3030` 열기
@@ -128,7 +128,8 @@ FFPROBE_PATH=
 
 웹 UI가 기본 인터페이스지만, 배치 처리용 CLI도 유지합니다.
 
-- `npm run app`: CRUD 웹앱 실행
+- `npm run dev`: CRUD 웹앱 실행
+- `npm run app`: `npm run dev` 별칭
 - `npm run login`: Instagram 로그인 세션 저장
 - `npm run run`: 아직 처리되지 않은 레퍼런스 처리
 - `npm run run -- --reel <id>`: 특정 레퍼런스만 처리

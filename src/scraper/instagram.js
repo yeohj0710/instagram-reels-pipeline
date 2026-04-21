@@ -17,6 +17,8 @@ const METRIC_LABEL_PATTERNS = {
   shares: ['\uACF5\uC720(?:\uD558\uAE30)?', 'shares?', 'share'],
   saves: ['\uC800\uC7A5(?:\uC218)?', 'saves?', 'save']
 };
+const COMPACT_METRIC_TEXT_PATTERN =
+  /(?:(?:좋아요|댓글|리포스트|공유(?:하기)?|저장|조회|재생|likes?|comments?|reposts?|shares?|saves?|views?|plays?)\s*[\d,.]+|[\d,.]+\s*(?:likes?|comments?|reposts?|shares?|saves?|views?|plays?))/i;
 
 function uniqueStrings(values) {
   return Array.from(
@@ -352,13 +354,47 @@ function pickCountText(texts, needle) {
   return texts.find((text) => new RegExp(`\\b${needle}s?\\b`, 'i').test(text)) ?? null;
 }
 
+function countMetricLabels(text) {
+  const normalized = normalizeWhitespace(text);
+
+  if (!normalized) {
+    return 0;
+  }
+
+  return Object.values(METRIC_LABEL_PATTERNS).reduce((count, patterns) => {
+    const matched = patterns.some((pattern) => new RegExp(pattern, 'i').test(normalized));
+    return count + (matched ? 1 : 0);
+  }, 0);
+}
+
+function isCompactMetricText(text) {
+  const normalized = normalizeWhitespace(text);
+
+  if (!normalized || normalized.length > 140) {
+    return false;
+  }
+
+  if (!COMPACT_METRIC_TEXT_PATTERN.test(normalized)) {
+    return false;
+  }
+
+  const labelCount = countMetricLabels(normalized);
+  const digitCount = (normalized.match(/\d/g) ?? []).length;
+
+  return labelCount >= 2 || (labelCount >= 1 && digitCount >= 2 && normalized.length <= 64);
+}
+
 function collectMetricTextCandidates(source) {
-  return uniqueStrings([
-    source.metaTags?.description,
-    source.metaTags?.['og:description'],
+  const compactCandidates = uniqueStrings([
     ...(Array.isArray(source.countTexts) ? source.countTexts.slice(0, 30) : []),
-    ...(Array.isArray(source.captionCandidates) ? source.captionCandidates.slice(0, 20) : []),
-    ...(Array.isArray(source.visibleTexts) ? source.visibleTexts.slice(0, 60) : [])
+    ...(Array.isArray(source.captionCandidates) ? source.captionCandidates.slice(0, 40) : []),
+    ...(Array.isArray(source.visibleTexts) ? source.visibleTexts.slice(0, 80) : [])
+  ]).filter(isCompactMetricText);
+
+  return uniqueStrings([
+    ...compactCandidates,
+    source.metaTags?.description,
+    source.metaTags?.['og:description']
   ]);
 }
 

@@ -1,0 +1,306 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - paragraph [ref=e5]: Instagram Reels Pipeline
+      - heading "릴스 데이터를 정리하고 분석해서 다음 기획 초안까지 이어가는 워크스페이스" [level=1] [ref=e6]
+      - paragraph [ref=e7]: 정보 레퍼런스와 형식 레퍼런스를 나눠 저장하고, 처리 결과와 분석 산출물을 파일 기준으로 관리합니다.
+    - generic [ref=e8]:
+      - button "새로고침" [ref=e9] [cursor=pointer]
+      - button "미처리 레퍼런스 처리" [ref=e10] [cursor=pointer]
+      - button "미분석 레퍼런스 분석" [ref=e11] [cursor=pointer]
+  - generic [ref=e12]:
+    - article [ref=e13]:
+      - text: 정보 릴스
+      - strong [ref=e14]: "0"
+    - article [ref=e15]:
+      - text: 형식 릴스
+      - strong [ref=e16]: "1"
+    - article [ref=e17]:
+      - text: 분석 완료
+      - strong [ref=e18]: "1"
+    - article [ref=e19]:
+      - text: 진행 중 작업
+      - strong [ref=e20]: "0"
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - paragraph [ref=e24]: Reference Intake
+        - heading "릴스 레퍼런스 등록" [level=2] [ref=e25]
+        - paragraph [ref=e26]: 링크를 한 줄에 하나씩 넣으면 저장됩니다. 제목, 토픽, 태그는 필요한 만큼만 보정하면 됩니다.
+      - generic [ref=e27]: 자동 처리 가능
+    - generic [ref=e28]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]: 구분
+          - combobox "구분" [ref=e32]:
+            - option "정보 릴스" [selected]
+            - option "형식 릴스"
+        - generic [ref=e33]:
+          - generic [ref=e34]: 관리 제목
+          - textbox "관리 제목" [ref=e35]:
+            - /placeholder: 한 개만 등록할 때만 입력해도 충분합니다.
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - generic [ref=e38]: 릴스 주소
+          - textbox "릴스 주소" [ref=e39]:
+            - /placeholder: "https://www.instagram.com/reel/...\nhttps://www.instagram.com/reel/..."
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - generic [ref=e42]: 메모
+            - textbox "메모" [ref=e43]:
+              - /placeholder: 왜 저장하는지, 나중에 볼 포인트를 적어둡니다.
+          - generic [ref=e44]:
+            - checkbox "저장 직후 자동 처리 + 자동 분석" [checked] [ref=e45]
+            - generic [ref=e46]: 저장 직후 자동 처리 + 자동 분석
+          - paragraph [ref=e47]: Instagram 로그인 세션이 없으면 저장만 되고 자동 처리 단계는 시작되지 않습니다.
+      - generic [ref=e48]:
+        - button "레퍼런스 저장" [ref=e49] [cursor=pointer]
+        - paragraph [ref=e50]: 워크스페이스를 불러왔습니다.
+  - generic [ref=e51]:
+    - generic [ref=e52]:
+      - generic [ref=e53]:
+        - generic [ref=e54]:
+          - paragraph [ref=e55]: Information
+          - heading "정보 레퍼런스" [level=2] [ref=e56]
+          - paragraph [ref=e57]: 핵심 정보, 주장, 인사이트를 정리해두는 레퍼런스입니다.
+        - generic [ref=e58]: 0건
+      - generic [ref=e154]: 아직 등록된 정보 레퍼런스가 없습니다.
+    - generic [ref=e61]:
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - paragraph [ref=e64]: Format
+          - heading "형식 레퍼런스" [level=2] [ref=e65]
+          - paragraph [ref=e66]: 구성, 전달 방식, 화면 리듬을 참고하는 레퍼런스입니다.
+        - generic [ref=e67]: 1건
+      - generic [ref=e155]:
+        - generic [ref=e156]:
+          - generic [ref=e157]: 제목
+          - generic [ref=e158]: 지표
+          - generic [ref=e159]: 업데이트
+          - generic [ref=e160]: 액션
+        - article [ref=e162]:
+          - generic [ref=e163]:
+            - button "접기" [expanded] [ref=e164] [cursor=pointer]: ▾
+            - generic [ref=e165]:
+              - strong [ref=e167]: 댓글에 [도구] 달아주시면 콘텐츠 제작시 유용한 도구 4가지 정보글 바로 보내드릴게요!
+              - generic [ref=e168]:
+                - generic [ref=e169]: "@studio.unicorn_"
+                - generic [ref=e170]: dunlzxgj2oj
+            - generic [ref=e171]:
+              - generic [ref=e172]: 지표
+              - generic [ref=e173]:
+                - generic [ref=e174]:
+                  - generic [ref=e175]: 좋아요
+                  - strong [ref=e176]: 2,107
+                - generic [ref=e177]:
+                  - generic [ref=e178]: 댓글
+                  - strong [ref=e179]: 5,643
+                - generic [ref=e180]:
+                  - generic [ref=e181]: 공유
+                  - strong [ref=e182]: "343"
+            - generic [ref=e183]:
+              - generic [ref=e184]: 업데이트
+              - generic [ref=e185]: 04. 18. 오후 06:37
+            - generic [ref=e186]:
+              - button "처리" [ref=e187] [cursor=pointer]
+              - button "분석" [ref=e188] [cursor=pointer]
+              - link "원본" [ref=e189] [cursor=pointer]:
+                - /url: https://www.instagram.com/reels/DUnlZxgj2Oj/
+          - generic [ref=e192]:
+            - generic [ref=e193]:
+              - generic [ref=e195]:
+                - generic [ref=e196]:
+                  - generic [ref=e197]: 구분
+                  - combobox "구분" [ref=e198]:
+                    - option "정보 릴스"
+                    - option "형식 릴스" [selected]
+                    - option "미분류"
+                - generic [ref=e199]:
+                  - generic [ref=e200]: 관리 제목
+                  - textbox "관리 제목" [ref=e201]:
+                    - /placeholder: 댓글에 [도구] 달아주시면 콘텐츠 제작시 유용한 도구 4가지 정보글 바로 보내드릴게요!
+              - generic [ref=e202]:
+                - generic [ref=e204]:
+                  - heading "지표" [level=3] [ref=e205]
+                  - paragraph [ref=e206]: 수동 입력값이 있으면 자동 수집값보다 우선합니다.
+                - generic [ref=e207]:
+                  - generic [ref=e208]:
+                    - generic [ref=e209]:
+                      - generic [ref=e210]: 조회
+                      - generic [ref=e211]: 미수집
+                    - strong [ref=e212]: 미수집
+                    - generic [ref=e213]: 수동 보정
+                    - textbox "조회 미수집 미수집 수동 보정" [ref=e214]:
+                      - /placeholder: 값 없음
+                  - generic [ref=e215]:
+                    - generic [ref=e216]:
+                      - generic [ref=e217]: 좋아요
+                      - generic [ref=e218]: 수동 입력
+                    - strong [ref=e219]: 2,107
+                    - generic [ref=e220]: 수동 보정
+                    - textbox "좋아요 수동 입력 2,107 수동 보정" [ref=e221]:
+                      - /placeholder: 2,107
+                      - text: 2,107
+                  - generic [ref=e222]:
+                    - generic [ref=e223]:
+                      - generic [ref=e224]: 댓글
+                      - generic [ref=e225]: 수동 입력
+                    - strong [ref=e226]: 5,643
+                    - generic [ref=e227]: 수동 보정
+                    - textbox "댓글 수동 입력 5,643 수동 보정" [ref=e228]:
+                      - /placeholder: 5,643
+                      - text: 5,643
+                  - generic [ref=e229]:
+                    - generic [ref=e230]:
+                      - generic [ref=e231]: 저장
+                      - generic [ref=e232]: 미수집
+                    - strong [ref=e233]: 미수집
+                    - generic [ref=e234]: 수동 보정
+                    - textbox "저장 미수집 미수집 수동 보정" [ref=e235]:
+                      - /placeholder: 값 없음
+                  - generic [ref=e236]:
+                    - generic [ref=e237]:
+                      - generic [ref=e238]: 공유
+                      - generic [ref=e239]: 수동 입력
+                    - strong [ref=e240]: "343"
+                    - generic [ref=e241]: 수동 보정
+                    - textbox "공유 수동 입력 343 수동 보정" [ref=e242]:
+                      - /placeholder: "343"
+                      - text: "343"
+                  - generic [ref=e243]:
+                    - generic [ref=e244]:
+                      - generic [ref=e245]: 리텐션
+                      - generic [ref=e246]: 미수집
+                    - strong [ref=e247]: 미수집
+                    - generic [ref=e248]: 수동 보정
+                    - textbox "리텐션 미수집 미수집 수동 보정" [ref=e249]:
+                      - /placeholder: 값 없음
+              - generic [ref=e250]:
+                - button "저장" [ref=e251] [cursor=pointer]
+                - button "처리" [ref=e252] [cursor=pointer]
+                - button "분석" [ref=e253] [cursor=pointer]
+                - button "삭제" [ref=e254] [cursor=pointer]
+            - generic [ref=e255]:
+              - generic [ref=e256]:
+                - heading "구성 프레임" [level=3] [ref=e257]
+                - generic [ref=e258]:
+                  - link "frame 1 장면 1" [ref=e259] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0001.jpg
+                    - img "frame 1" [ref=e260]
+                    - generic [ref=e261]: 장면 1
+                  - link "frame 2 장면 2" [ref=e262] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0002.jpg
+                    - img "frame 2" [ref=e263]
+                    - generic [ref=e264]: 장면 2
+                  - link "frame 3 장면 3" [ref=e265] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0003.jpg
+                    - img "frame 3" [ref=e266]
+                    - generic [ref=e267]: 장면 3
+                  - link "frame 4 장면 4" [ref=e268] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0004.jpg
+                    - img "frame 4" [ref=e269]
+                    - generic [ref=e270]: 장면 4
+                  - link "frame 5 장면 5" [ref=e271] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0005.jpg
+                    - img "frame 5" [ref=e272]
+                    - generic [ref=e273]: 장면 5
+                  - link "frame 6 장면 6" [ref=e274] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0006.jpg
+                    - img "frame 6" [ref=e275]
+                    - generic [ref=e276]: 장면 6
+                  - link "frame 7 장면 7" [ref=e277] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0007.jpg
+                    - img "frame 7" [ref=e278]
+                    - generic [ref=e279]: 장면 7
+                  - link "frame 8 장면 8" [ref=e280] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0008.jpg
+                    - img "frame 8" [ref=e281]
+                    - generic [ref=e282]: 장면 8
+                  - link "frame 9 장면 9" [ref=e283] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0009.jpg
+                    - img "frame 9" [ref=e284]
+                    - generic [ref=e285]: 장면 9
+                  - link "frame 10 장면 10" [ref=e286] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0010.jpg
+                    - img "frame 10" [ref=e287]
+                    - generic [ref=e288]: 장면 10
+                  - link "frame 11 장면 11" [ref=e289] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0011.jpg
+                    - img "frame 11" [ref=e290]
+                    - generic [ref=e291]: 장면 11
+                  - link "frame 12 장면 12" [ref=e292] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/frames/frame-0012.jpg
+                    - img "frame 12" [ref=e293]
+                    - generic [ref=e294]: 장면 12
+              - generic [ref=e295]:
+                - heading "원본 데이터" [level=3] [ref=e296]
+                - generic [ref=e299]:
+                  - link "원본 릴스" [ref=e300] [cursor=pointer]:
+                    - /url: https://www.instagram.com/reels/DUnlZxgj2Oj/
+                  - link "영상 파일" [ref=e301] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/video.mp4
+                  - link "전사 파일" [ref=e302] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/transcript/transcript.txt
+                  - link "오디오 파일" [ref=e303] [cursor=pointer]:
+                    - /url: /data/reels/dunlzxgj2oj/media/audio.mp3
+                - generic [ref=e304]:
+                  - generic [ref=e305]:
+                    - text: 제목 출처
+                    - strong [ref=e306]: 훅 문장
+                  - generic [ref=e307]:
+                    - text: 작성자
+                    - strong [ref=e308]: "@studio.unicorn_"
+                  - generic [ref=e309]:
+                    - text: 마지막 처리
+                    - strong [ref=e310]: 2026. 4. 18. 오후 6:20:55
+                  - generic [ref=e311]:
+                    - text: 마지막 분석
+                    - strong [ref=e312]: 2026. 4. 18. 오후 6:37:36
+            - generic [ref=e314]:
+              - heading "대본" [level=3] [ref=e315]
+              - generic [ref=e316]: 나는 콘텐츠 아이디어 찾으려고 인스타그램만 하루에 두 시간씩 봐. 나는 샌드캐슬 AI라는 걸 사용해서 사람들이 지금 어떤 주제에 관심이 많은지, 지금 사람들이 어떤 콘텐츠에 관심이 많은지 확인해. 나는 내 경쟁자들 계정에 들어가서 어떤 릴스가 터졌는지 하나하나 다 찾아. 나는 솔피트 크롬 익스텐션을 사용해서 경쟁자들의 영상을 조회수 그리고 좋아요가 많은 순서대로 정렬해서 한 번에 쭉 봐. 그래야지 사람들이 어떤 주제랑 어떤 형식을 좋아하는지 한눈에 볼 수 있어. 나는 대본을 백지에서부터 그냥 기획해. 나는 클립토 AI로 터진 릴스의 스크립트를 5초 만에 추출해. 그리고 채찍기티한테 가서 이 대본 구조를 분석해달라 그러고 그 구조를 내 콘텐츠에 그대로 적용시켜. 나는 효과음 안 써. 솔직히 귀찮고 왜 써야 되는지도 잘 모르겠어. 난 마이 인스턴스라는 사이트에 접속해서 적당한 효과음을 골라서 사용해. 그럼 영상이 더 재밌어져서 사람들이 끝까지 보더라고. 댓글에 도구 달아주시면 릴스 만들 때 유용한 웹사이트와 어플 사용법을 알려드리는 정보 바로 보내드릴게.
+  - generic [ref=e104]:
+    - generic [ref=e105]:
+      - generic [ref=e107]:
+        - paragraph [ref=e108]: Planner
+        - heading "기획안 생성" [level=2] [ref=e109]
+        - paragraph [ref=e110]: 선별한 정보 레퍼런스와 형식 레퍼런스를 묶어 초안을 만듭니다.
+      - generic [ref=e111]:
+        - generic [ref=e112]:
+          - generic [ref=e113]:
+            - generic [ref=e114]: 기획안 제목
+            - textbox "기획안 제목" [ref=e115]:
+              - /placeholder: "예: 상담 릴스 인사이트 x 질문형 훅"
+          - generic [ref=e116]:
+            - generic [ref=e117]: 토픽
+            - textbox "토픽" [ref=e118]:
+              - /placeholder: 비워두면 정보 레퍼런스 토픽을 우선 사용합니다.
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - paragraph [ref=e121]: 정보 레퍼런스 선택
+            - generic [ref=e123]: 분석된 정보 레퍼런스가 없습니다.
+          - generic [ref=e124]:
+            - paragraph [ref=e125]: 형식 레퍼런스 선택
+            - generic [ref=e127]:
+              - checkbox "댓글에 [도구] 달아주시면 콘텐츠 제작시 유용한 도구 4가지 정보글 바로 보내드릴게요! @studio.unicorn_" [ref=e128]
+              - generic [ref=e129]:
+                - paragraph [ref=e130]:
+                  - strong [ref=e131]: 댓글에 [도구] 달아주시면 콘텐츠 제작시 유용한 도구 4가지 정보글 바로 보내드릴게요!
+                - paragraph [ref=e132]: "@studio.unicorn_"
+        - generic [ref=e133]:
+          - generic [ref=e134]: 매칭 메모
+          - textbox "매칭 메모" [ref=e135]:
+            - /placeholder: 왜 이 조합이 맞는지, 검수 포인트를 적어둡니다.
+        - button "기획안 생성" [ref=e137] [cursor=pointer]
+    - generic [ref=e138]:
+      - generic [ref=e140]:
+        - paragraph [ref=e141]: Saved Plans
+        - heading "저장된 기획안" [level=2] [ref=e142]
+        - paragraph [ref=e143]: 생성한 초안을 다시 열어 수정하거나 상태를 바꿉니다.
+      - generic [ref=e145]: 아직 생성된 기획안이 없습니다.
+  - generic [ref=e146]:
+    - generic [ref=e148]:
+      - paragraph [ref=e149]: Queue
+      - heading "작업 큐" [level=2] [ref=e150]
+      - paragraph [ref=e151]: 백그라운드 작업은 순서대로 처리되고, 서버를 재시작하면 큐 기록만 초기화됩니다.
+    - generic [ref=e153]: 현재 대기 중인 작업이 없습니다.

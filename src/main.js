@@ -1,7 +1,9 @@
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
 
 import { env } from './config/env.js';
 import { extractFrames } from './processor/frames.js';
+import { extractTitleFromFrames } from './processor/title-ocr.js';
 import {
   downloadMediaFromBrowserContext,
   extractAudio,
@@ -20,8 +22,9 @@ import {
 } from './scraper/instagram.js';
 import { finalizeManifest, loadOrCreateManifest, markStatus, recordError, saveManifest } from './storage/manifest.js';
 import { buildReelPaths, ensureProjectDirectories, ensureReelDirectories, INPUT_REELS_PATH } from './storage/paths.js';
-import { fileExists, writeJson } from './utils/fs.js';
+import { fileExists, readJson, writeJson } from './utils/fs.js';
 import { log } from './utils/log.js';
+import { normalizeWhitespace } from './utils/text.js';
 
 function probeHasAudioStream(probeData) {
   return Array.isArray(probeData?.streams) && probeData.streams.some((stream) => stream.codec_type === 'audio');
@@ -36,6 +39,21 @@ async function cleanupTempMediaFiles(reelPaths) {
     fs.rm(reelPaths.audioSourcePath, { force: true }).catch(() => {}),
     fs.rm(reelPaths.mergedVideoPath, { force: true }).catch(() => {})
   ]);
+}
+
+async function shouldBackfillThumbnailTitle(reelPaths, meta) {
+  if (normalizeWhitespace(meta?.thumbnailTitle)) {
+    return false;
+  }
+
+  const record = await readJson(reelPaths.recordPath, null);
+
+  if (record?.collectionType !== 'information') {
+    return true;
+  }
+
+  const transcriptText = await fs.readFile(reelPaths.transcriptTextPath, 'utf8').catch(() => '');
+  return !normalizeWhitespace(transcriptText);
 }
 
 async function attemptVideoDownload(page, reelPaths, source, meta, manifest) {
@@ -217,6 +235,32 @@ export async function processReelUrl(context, url, index, total) {
       try {
         await extractFrames(reelPaths.videoPath, reelPaths.framesDir, env.FRAME_INTERVAL_SECONDS);
         markStatus(manifest, 'extracted_frames');
+
+        const firstFramePaths = Array.from({ length: 3 }, (_, index) =>
+          path.join(reelPaths.framesDir, `frame-${String(index + 1).padStart(4, '0')}.jpg`)
+        );
+        const existingFramePaths = [];
+
+        for (const framePath of firstFramePaths) {
+          if (await fileExists(framePath)) {
+            existingFramePaths.push(framePath);
+          }
+        }
+
+        if ((await shouldBackfillThumbnailTitle(reelPaths, meta)) && existingFramePaths.length > 0) {
+          try {
+            const thumbnailTitle = await extractTitleFromFrames(existingFramePaths);
+
+            if (thumbnailTitle?.text) {
+              meta.thumbnailTitle = thumbnailTitle.text;
+              meta.thumbnailTitleConfidence = thumbnailTitle.confidence ?? null;
+              meta.thumbnailTitleFrame = thumbnailTitle.framePath ?? null;
+              await writeJson(reelPaths.metaPath, meta);
+            }
+          } catch (error) {
+            recordError(manifest, 'thumbnail_title', error);
+          }
+        }
       } catch (error) {
         recordError(manifest, 'extracted_frames', error);
       }

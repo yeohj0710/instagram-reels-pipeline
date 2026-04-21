@@ -1,0 +1,86 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - paragraph [ref=e5]: Instagram Reels Pipeline
+      - heading "릴스 데이터를 정리하고 분석해서 다음 기획 초안까지 이어가는 워크스페이스" [level=1] [ref=e6]
+      - paragraph [ref=e7]: 정보 레퍼런스와 형식 레퍼런스를 나눠 저장하고, 처리 결과와 분석 산출물을 파일 기준으로 관리합니다.
+    - generic [ref=e8]:
+      - button "새로고침" [ref=e9] [cursor=pointer]
+      - button "미처리 레퍼런스 처리" [ref=e10] [cursor=pointer]
+      - button "미분석 레퍼런스 분석" [ref=e11] [cursor=pointer]
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: Reference Intake
+        - heading "릴스 레퍼런스 등록" [level=2] [ref=e17]
+        - paragraph [ref=e18]: 링크를 한 줄에 하나씩 넣으면 저장됩니다. 제목, 토픽, 태그는 필요한 만큼만 보정하면 됩니다.
+      - generic [ref=e19]: 세션 확인 중
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23]: 구분
+          - combobox "구분" [ref=e24]:
+            - option "정보 릴스" [selected]
+            - option "형식 릴스"
+        - generic [ref=e25]:
+          - generic [ref=e26]: 관리 제목
+          - textbox "관리 제목" [ref=e27]:
+            - /placeholder: 한 개만 등록할 때만 입력해도 충분합니다.
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - generic [ref=e30]: 릴스 주소
+          - textbox "릴스 주소" [ref=e31]:
+            - /placeholder: "https://www.instagram.com/reel/...\nhttps://www.instagram.com/reel/..."
+        - generic [ref=e32]:
+          - generic [ref=e33]:
+            - generic [ref=e34]: 메모
+            - textbox "메모" [ref=e35]:
+              - /placeholder: 왜 저장하는지, 나중에 볼 포인트를 적어둡니다.
+          - generic [ref=e36]:
+            - checkbox "저장 직후 자동 처리 + 자동 분석" [checked] [ref=e37]
+            - generic [ref=e38]: 저장 직후 자동 처리 + 자동 분석
+          - paragraph [ref=e39]: Instagram 로그인 세션이 없으면 저장만 되고 자동 처리 단계는 시작되지 않습니다.
+      - generic [ref=e40]:
+        - button "레퍼런스 저장" [ref=e41] [cursor=pointer]
+        - paragraph
+  - generic [ref=e42]:
+    - generic [ref=e45]:
+      - paragraph [ref=e46]: Information
+      - heading "정보 레퍼런스" [level=2] [ref=e47]
+      - paragraph [ref=e48]: 핵심 정보, 주장, 인사이트를 정리해두는 레퍼런스입니다.
+    - generic [ref=e52]:
+      - paragraph [ref=e53]: Format
+      - heading "형식 레퍼런스" [level=2] [ref=e54]
+      - paragraph [ref=e55]: 구성, 전달 방식, 화면 리듬을 참고하는 레퍼런스입니다.
+  - generic [ref=e57]:
+    - generic [ref=e58]:
+      - generic [ref=e60]:
+        - paragraph [ref=e61]: Planner
+        - heading "기획안 생성" [level=2] [ref=e62]
+        - paragraph [ref=e63]: 선별한 정보 레퍼런스와 형식 레퍼런스를 묶어 초안을 만듭니다.
+      - generic [ref=e64]:
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e67]: 기획안 제목
+            - textbox "기획안 제목" [ref=e68]:
+              - /placeholder: "예: 상담 릴스 인사이트 x 질문형 훅"
+          - generic [ref=e69]:
+            - generic [ref=e70]: 토픽
+            - textbox "토픽" [ref=e71]:
+              - /placeholder: 비워두면 정보 레퍼런스 토픽을 우선 사용합니다.
+        - generic [ref=e72]:
+          - paragraph [ref=e74]: 정보 레퍼런스 선택
+          - paragraph [ref=e77]: 형식 레퍼런스 선택
+        - generic [ref=e79]:
+          - generic [ref=e80]: 매칭 메모
+          - textbox "매칭 메모" [ref=e81]:
+            - /placeholder: 왜 이 조합이 맞는지, 검수 포인트를 적어둡니다.
+        - button "기획안 생성" [ref=e83] [cursor=pointer]
+    - generic [ref=e86]:
+      - paragraph [ref=e87]: Saved Plans
+      - heading "저장된 기획안" [level=2] [ref=e88]
+      - paragraph [ref=e89]: 생성한 초안을 다시 열어 수정하거나 상태를 바꿉니다.
+  - generic [ref=e92]:
+    - paragraph [ref=e93]: Queue
+    - heading "작업 큐" [level=2] [ref=e94]
+    - paragraph [ref=e95]: 백그라운드 작업은 순서대로 처리되고, 서버를 재시작하면 큐 기록만 초기화됩니다.

@@ -1,8 +1,9 @@
 import path from 'node:path';
 
+import { extractTitleFromFrames } from '../processor/title-ocr.js';
 import { normalizeSourceToMeta } from '../scraper/instagram.js';
 import { buildReelPaths, ensureProjectDirectories, REELS_DIR } from '../storage/paths.js';
-import { listDirectories, readJson, readTextFile, removeDir, writeJson } from '../utils/fs.js';
+import { listDirectories, listFiles, readJson, readTextFile, removeDir, writeJson } from '../utils/fs.js';
 import { firstSentence, normalizeWhitespace, parseMetricValue } from '../utils/text.js';
 
 export const COLLECTION_TYPES = ['information', 'format', 'unassigned'];
@@ -180,10 +181,11 @@ function mergeReferenceRecord(existing, patch) {
   });
 }
 
-function buildDataUrls(reelId) {
+function buildDataUrls(reelId, frameUrls = []) {
   return {
     video: `/data/reels/${reelId}/media/video.mp4`,
     audio: `/data/reels/${reelId}/media/audio.mp3`,
+    frames: frameUrls,
     transcript: `/data/reels/${reelId}/transcript/transcript.txt`,
     summary: `/data/reels/${reelId}/analysis/summary.md`
   };
@@ -333,8 +335,23 @@ function isUsableDisplayTitle(text) {
   return /[\p{L}\p{N}]/u.test(normalized);
 }
 
+function isStrongThumbnailTitleText(text) {
+  const normalized = normalizeCaptionText(text);
+
+  if (!isUsableDisplayTitle(normalized)) {
+    return false;
+  }
+
+  return normalized.length >= 16 || /\d/.test(normalized) || /[?!:]/.test(normalized);
+}
+
 function buildDisplayTitle(bundle, record, collectionAnalysis) {
   const author = normalizeWhitespace(record.sourceSnapshot.author ?? bundle.meta?.author ?? '');
+  const transcriptOpening = firstSentence(bundle.transcriptText);
+  const structureHook = normalizeWhitespace(bundle.structure?.hook?.text);
+  const captionOpening = firstSentence(bundle.meta?.caption);
+  const formatHook = normalizeWhitespace(collectionAnalysis?.hookFormula ?? collectionAnalysis?.openingHook ?? '');
+  const collectionType = normalizeCollectionType(record.collectionType);
 
   if (record.title) {
     return {
@@ -343,7 +360,7 @@ function buildDisplayTitle(bundle, record, collectionAnalysis) {
     };
   }
 
-  if (record.collectionType === 'unassigned') {
+  if (collectionType === 'unassigned') {
     if (author) {
       return {
         title: `@${author} - ${record.reelId}`,
@@ -357,12 +374,27 @@ function buildDisplayTitle(bundle, record, collectionAnalysis) {
     };
   }
 
-  const candidates = [
-    { source: 'analysis', value: collectionAnalysis?.summary },
-    { source: 'hook', value: bundle.structure?.hook?.text },
-    { source: 'transcript', value: firstSentence(bundle.transcriptText) },
-    { source: 'caption', value: bundle.meta?.caption }
-  ];
+  const candidates =
+    collectionType === 'format'
+      ? [
+          { source: 'format_hook', value: formatHook },
+          { source: 'caption_opening', value: captionOpening },
+          { source: 'transcript_opening', value: transcriptOpening },
+          { source: 'structure_hook', value: structureHook },
+          {
+            source: 'thumbnail_ocr',
+            value: isStrongThumbnailTitleText(bundle.meta?.thumbnailTitle) ? bundle.meta?.thumbnailTitle : ''
+          }
+        ]
+      : [
+          { source: 'transcript_opening', value: transcriptOpening },
+          { source: 'structure_hook', value: structureHook },
+          { source: 'caption_opening', value: captionOpening },
+          {
+            source: 'thumbnail_ocr',
+            value: isStrongThumbnailTitleText(bundle.meta?.thumbnailTitle) ? bundle.meta?.thumbnailTitle : ''
+          }
+        ];
 
   for (const candidate of candidates) {
     if (!candidate.value) {
@@ -379,26 +411,22 @@ function buildDisplayTitle(bundle, record, collectionAnalysis) {
     }
   }
 
-  const topic = normalizeWhitespace(record.topic);
-
-  if (topic && author) {
-    return {
-      title: compactText(`${topic} - @${author}`),
-      source: 'topic_author_fallback'
-    };
-  }
-
-  if (author) {
-    return {
-      title: `@${author} - ${record.reelId}`,
-      source: 'author_fallback'
-    };
-  }
-
   return {
-    title: record.reelId,
-    source: 'reel_id_fallback'
+    title: '',
+    source: 'unresolved'
   };
+}
+
+function shouldBackfillThumbnailTitle(meta, record, transcriptText) {
+  if (normalizeWhitespace(meta?.thumbnailTitle)) {
+    return false;
+  }
+
+  if (normalizeCollectionType(record?.collectionType) === 'information' && normalizeWhitespace(transcriptText)) {
+    return false;
+  }
+
+  return true;
 }
 
 function buildPreviewSnippet(bundle, collectionAnalysis) {
@@ -462,14 +490,14 @@ function buildReferenceSummary(bundle, record) {
       null,
     previewSnippet: buildPreviewSnippet(bundle, collectionAnalysis),
     transcriptPreview: bundle.transcriptText ? bundle.transcriptText.slice(0, 240) : '',
-    assetUrls: buildDataUrls(record.reelId)
+    assetUrls: buildDataUrls(record.reelId, bundle.frameUrls ?? [])
   };
 }
 
 async function loadBundleForReference(reelId) {
   const reelPaths = buildReelPaths(`https://www.instagram.com/reels/${reelId}/`);
 
-  const [record, meta, source, manifest, structure, portability, information, format, transcriptText] = await Promise.all([
+  const [record, meta, source, manifest, structure, portability, information, format, transcriptText, framePaths] = await Promise.all([
     readJson(reelPaths.recordPath, null),
     readJson(reelPaths.metaPath, {}),
     readJson(reelPaths.sourcePath, {}),
@@ -478,13 +506,38 @@ async function loadBundleForReference(reelId) {
     readJson(reelPaths.portabilityPath, null),
     readJson(reelPaths.informationPath, null),
     readJson(reelPaths.formatPath, null),
-    readTextFile(reelPaths.transcriptTextPath).catch(() => '')
+    readTextFile(reelPaths.transcriptTextPath).catch(() => ''),
+    listFiles(reelPaths.framesDir)
   ]);
 
-  const effectiveMeta = buildEffectiveMeta(meta, source);
+  const frameUrls = framePaths
+    .map((framePath) => path.basename(framePath))
+    .sort((left, right) => left.localeCompare(right))
+    .slice(0, 12)
+    .map((fileName) => `/data/reels/${reelId}/media/frames/${fileName}`);
+
+  let effectiveMeta = buildEffectiveMeta(meta, source);
 
   if (!record && Object.keys(effectiveMeta).length === 0 && Object.keys(manifest).length === 0) {
     return null;
+  }
+
+  if (shouldBackfillThumbnailTitle(effectiveMeta, record, transcriptText) && framePaths.length > 0) {
+    try {
+      const thumbnailTitle = await extractTitleFromFrames(framePaths.slice(0, 3));
+
+      if (thumbnailTitle?.text) {
+        effectiveMeta = {
+          ...effectiveMeta,
+          thumbnailTitle: thumbnailTitle.text,
+          thumbnailTitleConfidence: thumbnailTitle.confidence ?? null,
+          thumbnailTitleFrame: thumbnailTitle.framePath ?? null
+        };
+        await writeJson(reelPaths.metaPath, effectiveMeta);
+      }
+    } catch {
+      // OCR backfill is best-effort and should never break dashboard rendering.
+    }
   }
 
   const normalizedRecord = normalizeReferenceRecord(record ?? {}, {
@@ -510,7 +563,8 @@ async function loadBundleForReference(reelId) {
     portability,
     information,
     format,
-    transcriptText
+    transcriptText,
+    frameUrls
   };
 }
 

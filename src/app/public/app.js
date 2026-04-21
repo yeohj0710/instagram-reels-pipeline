@@ -1,12 +1,18 @@
 const TITLE_SOURCE_LABELS = {
-  manual: '수동 제목',
-  analysis: '분석 요약',
-  hook: '훅 문장',
-  transcript: '전사 문장',
-  caption: '캡션 정리',
-  topic_author_fallback: '토픽/작성자 기반',
-  author_fallback: '작성자 기반',
-  reel_id_fallback: '릴스 ID'
+  manual: '\uC218\uB3D9 \uC81C\uBAA9',
+  analysis: '\uBD84\uC11D \uC694\uC57D',
+  hook: '\uD6C5 \uBB38\uC7A5',
+  transcript: '\uC804\uC0AC \uBB38\uC7A5',
+  caption: '\uCEA1\uC158 \uC815\uB9AC',
+  format_hook: '\uD615\uC2DD \uD6C5',
+  transcript_opening: '\uC804\uC0AC \uCCAB \uBB38\uC7A5',
+  structure_hook: '\uAD6C\uC870 \uD6C5',
+  caption_opening: '\uCEA1\uC158 \uCCAB \uBB38\uC7A5',
+  thumbnail_ocr: '\uC378\uB124\uC77C OCR',
+  unresolved: '\uBBF8\uCD94\uCD9C',
+  topic_author_fallback: '\uD1A0\uD53D/\uC791\uC131\uC790 \uAE30\uBC18',
+  author_fallback: '\uC791\uC131\uC790 \uAE30\uBC18',
+  reel_id_fallback: '\uB9B4\uC2A4 ID'
 };
 
 const METRIC_FIELDS = [
